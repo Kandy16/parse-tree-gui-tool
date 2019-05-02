@@ -34,24 +34,28 @@ var renderGraphics = function(){
     render(d3.select("svg g"), g);
 }
 var selectedNodeIdentifier = undefined
-var selectedNodeItem = undefined
 
 var allNodes = svg.selectAll('g.node')
 
 var selectNodeFunc = function(itemIndex){
+	
+	if(selectedNodeIdentifier != undefined) {
+		selectedItem.classed('showing', false);
+		console.log('Previous node:',selectedItem);		
+	}
+	
     console.log('Selected Node index:',itemIndex);
     selectedNodeIdentifier = itemIndex
-    //selectedItem =  d3.select(this)
-    //selectedItem.classed('showing', true)
+    selectedItem =  d3.select(this)
+    selectedItem.classed('showing', true)
 }
-allNodes.on('focus',selectNodeFunc)
+allNodes.on('click',selectNodeFunc)
 
 var deselectNodeFunc = function(itemIndex){
-    //console.log('De-Selected Item index:',itemIndex);
-    //selectedIdentifier = undefined
-    //selectedItem = undefined
-    //d3.select(this)
-    //    .classed('showing', false)
+    console.log('De-Selected Item index:',itemIndex);
+    selectedIdentifier = undefined;
+    selectedItem = undefined;
+    d3.select(this).classed('showing', false);
 }
 allNodes.on('blur',deselectNodeFunc)
 
@@ -77,7 +81,7 @@ $("input[name='addnode']").click(function(){
         updateGraphSize()
         
         var newCreatedItem = gNode.select('.type-'+nodeString)
-        newCreatedItem.on('focus',selectNodeFunc)
+        newCreatedItem.on('click',selectNodeFunc)
         newCreatedItem.on('blur',deselectNodeFunc)
         newCreatedItem.on('dblclick',doubleClickNodeFunc)
         
@@ -229,9 +233,9 @@ var selectedEdge = undefined
 var recipientNodeIdentifier = undefined
 var selectEdgeFunc = function(edgeIndex){
     console.log('Selected edge index:',edgeIndex);
-    selectedEdgeIdentifier = edgeIndex
-    //selectedEdge =  d3.select(this)
-    //selectedEdge.classed('showing', true)
+    selectedEdgeIdentifier = edgeIndex;
+    selectedEdge =  d3.select(this);
+    selectedEdge.classed('showing', true);
 }
 allEdges.on('focus',selectEdgeFunc)
 
