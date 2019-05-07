@@ -154,6 +154,36 @@ function parseNonterminal(ntstr) {
     return node;
 }
 
+/*
+    Create an object from a preterminal in form 'VMFIN-3pis'
+    {
+        label: VMFIN,
+        morph: 3pis,
+    }
+ */
+function parsePreterminal(ntstr) {
+    const ntarray = ntstr.trim().split('-');
+    if (ntarray.length === 0) {
+        console.log("Unable to parse node:", ntstr);
+        return null;
+    }
+    const node = {label: ntarray[0]};
+    if (ntarray.length == 2) {
+        const morph = ntarray[1].trim();
+        if (morph !== 'NONE') {
+            node.morph = morph;
+        }
+    }
+
+    if (ntarray.length > 2) {
+        console.warn("Unknown preterminal format: ", ntstr)
+    }
+
+    return node;
+}
+
+
+
 // append a new child to the parent and set backreference child.parent
 function add_node(parent, child) {
     if (parent) {
@@ -228,7 +258,7 @@ function parseBrackets(brackets) {
                 if (!isEmpty(node)) {
                     let termArray = node.split(/\s+/);
                     if (termArray.length > 1) {
-                        const preterm = parseNonterminal(termArray[0]);
+                        const preterm = parsePreterminal(termArray[0]);
                         const term = termArray.slice(1).join(' ').trim();
                         add_node(preterm, {label: term, class: "type-TK"});
                         add_node(parentobj, preterm);
@@ -245,7 +275,7 @@ function parseBrackets(brackets) {
         }
     }
     console.assert(unmatched_brackets === 0);
-    console.log(parentobj);
+    // console.log(parentobj);
     return parentobj;
 }
 
