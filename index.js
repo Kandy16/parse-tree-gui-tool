@@ -9,23 +9,20 @@ function setupPanel(panel, elem, title) {
     return panel.append('pre').append('code').text(elem.html().trim());
 }
 
-
-var svg = d3.select('svg');
-var gNode = svg.select('g');
-var nodesCount = g.nodeCount();
-var edgesCount = g.edgeCount();
-console.log('Nodes count:', nodesCount);
-
-var renderGraphics = function () {
+function renderGraphics() {
     render(d3.select("svg g"), g);
-};
-var selectedNodeIdentifier = undefined;
+}
 
-var allNodes = svg.selectAll('g.node');
+
+var g = undefined;
+var render = undefined;
+var selectedNodeIdentifier = undefined;
+var selectedItem = undefined;
+
 
 var selectNodeFunc = function (itemIndex) {
 
-    if (selectedNodeIdentifier != undefined) {
+    if (selectedItem != undefined) {
         selectedItem.classed('showing', false);
         console.log('Previous node:', selectedItem);
     }
@@ -35,7 +32,7 @@ var selectNodeFunc = function (itemIndex) {
     selectedItem = d3.select(this);
     selectedItem.classed('showing', true)
 };
-allNodes.on('click', selectNodeFunc);
+
 
 var deselectNodeFunc = function (itemIndex) {
     console.log('De-Selected Item index:', itemIndex);
@@ -43,13 +40,13 @@ var deselectNodeFunc = function (itemIndex) {
     selectedItem = undefined;
     d3.select(this).classed('showing', false);
 };
-allNodes.on('blur', deselectNodeFunc);
+
 
 var doubleClickNodeFunc = function (itemIndex) {
     console.log('Double clicked Node index:', itemIndex);
     console.log(g.node(itemIndex))
 };
-allNodes.on('dblclick', doubleClickNodeFunc);
+
 
 $("input[name='addnode']").click(function () {
     console.log('Add node clicked');
@@ -91,7 +88,6 @@ $("input[name='addnode']").click(function () {
 $("input[name='removenode']").click(function () {
     console.log('Remove node clicked');
     if (selectedNodeIdentifier != undefined) {
-
         successorsList = g.successors(selectedNodeIdentifier);
         predecessorsList = g.predecessors(selectedNodeIdentifier);
 
@@ -220,7 +216,6 @@ $("input[name='left']").click(function (item) {
 });
 
 
-var allEdges = svg.selectAll('g.edgePath');
 var selectedEdgeIdentifier = undefined;
 var selectedEdge = undefined;
 var recipientNodeIdentifier = undefined;
@@ -230,7 +225,6 @@ var selectEdgeFunc = function (edgeIndex) {
     selectedEdge = d3.select(this);
     selectedEdge.classed('showing', true);
 };
-allEdges.on('focus', selectEdgeFunc);
 
 $("input[name='selectrecipientnode']").click(function () {
     console.log('select recipient node clicked');
@@ -277,28 +271,40 @@ $("input[name='removeedge']").click(function () {
     }
 });
 
-$("input[name='loadtree']").click(function () {
-    console.log('Load tree clicked');
-    const parse_str = document.querySelector("#input").value.trim().replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/g,' ');
+var loadTreeFunc = function () {
+    const parse_str = document.querySelector("#input").value.trim().replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/g, ' ');
     if (parse_str.startsWith('(') && parse_str.endsWith(')')) {
         const tree = parseBrackets(parse_str);
         if (tree) {
             var parentDiv = document.querySelector("#parses");
+            removeAllChildren(parentDiv);
             const div = parentDiv.appendChild(create_graph_div(tree));
-            const svg = div.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "svg"));
+            // const svg = div.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "svg"));
+            const svg = d3.select("svg");
+            svg.selectAll("*").remove();
             drawTree(tree, svg);
+
+            var allNodes = svg.selectAll('g.node');
+            allNodes.on('click', selectNodeFunc);
+            allNodes.on('blur', deselectNodeFunc);
+            allNodes.on('dblclick', doubleClickNodeFunc);
+            var allEdges = svg.selectAll('g.edgePath');
+            allEdges.on('focus', selectEdgeFunc);
         }
     }
-});
+};
 
-$("input[name='savetree']").click(function () {
-    console.log('Save tree clicked');
-    console.log(dagreD3.graphlib.json.write(g));
-    console.log(g.toJson())
+$("input[name='loadtree']").click(loadTreeFunc);
 
-});
+// $("input[name='savetree']").click(function () {
+//     console.log('Save tree clicked');
+//     console.log(dagreD3.graphlib.json.write(g));
+//     console.log(g.toJson())
+//
+// });
 
 function updateGraphSize() {
+    const svg = d3.select("svg");
     var xCenterOffset = (svg.attr("width") - g.graph().width) / 2;
     svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
     svg.attr("height", g.graph().height + 40);

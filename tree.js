@@ -67,7 +67,7 @@ function build_graph(graph, tree, startindex = 1) {
     }
     const graph_node = {label: label,};
     if (tree.class) {
-        graph_node.class = tree.class
+        graph_node.class = tree.class.join(' ');
     }
     graph.setNode(startindex, graph_node);
     let child_index = startindex * 10;
@@ -87,10 +87,10 @@ function build_graph(graph, tree, startindex = 1) {
 }
 
 // use dagre and d3 to draw a tree on the svg_elem
-function drawTree(tree, svg_elem) {
+function drawTree(tree, svg) {
     // Create the input graph
     // Available options: https://github.com/dagrejs/dagre/wiki
-    const g = new dagreD3.graphlib.Graph()
+    g = new dagreD3.graphlib.Graph()
         .setGraph({nodesep: 30, ranksep: 30})
         //      .setGraph({})
         .setDefaultEdgeLabel(function () {
@@ -106,14 +106,14 @@ function drawTree(tree, svg_elem) {
     });
 
     // Create the renderer
-    const render = new dagreD3.render();
+    render = new dagreD3.render();
 
     // Set up an SVG group so that we can translate the final graph.
-    const svg = d3.select(svg_elem),
-        svgGroup = svg.append("g");
+    // const svg = d3.select(svg_elem),
+    svgGroup = svg.append("g");
 
     // Run the renderer. This is what draws the final graph.
-    render(d3.select(svg_elem.firstChild), g);
+    render(d3.select("svg g"), g);
 
     svg.attr("width", g.graph().width + 40);
     // Center the graph
@@ -183,16 +183,22 @@ function parsePreterminal(ntstr) {
 }
 
 
-
 // append a new child to the parent and set backreference child.parent
 function add_node(parent, child) {
     if (parent) {
         if (!parent.hasOwnProperty('children')) {
-            parent.children = []
+            parent.children = [];
         }
         parent.children.push(child);
         child.parent = parent;
+        child.id = parent.id * 10 + parent.children.length;
+    } else {
+        child.id = 0;
     }
+    if (!child.hasOwnProperty('class')) {
+        child.class = [];
+    }
+    child.class.push('type-' + child.id);
 }
 
 // returns string representaiton of a node
@@ -230,6 +236,17 @@ function parse2str(tree, level = 0) {
     return result + ')';
 }
 
+// function numerateTree(node, gorn = 0) {
+//     node.id = gorn;
+//     gorn *= 10;
+//     if (node.hasOwnProperty('children')) {
+//         children = node.children;
+//         for (let i = 0; i < children.length; i++) {
+//             numerateTree(children[i], gorn + (i + 1));
+//         }
+//     }
+// }
+
 /*
     (TOP (SIMPX-NONE/nohead (VF-NONE/nohead (NX-ON (PPER-HD Es)))(LK-NONE (VXFIN-HD (VAFIN-HD ist)))(MF-NONE/nohead (NX-OA (ART-NONE eine)(ADJX-NONE (ADJA-HD schöne))(NN-HD Frau)))))
     transforms parse string in bracketing format (as above) to an object
@@ -260,8 +277,8 @@ function parseBrackets(brackets) {
                     if (termArray.length > 1) {
                         const preterm = parsePreterminal(termArray[0]);
                         const term = termArray.slice(1).join(' ').trim();
-                        add_node(preterm, {label: term, class: "type-TK"});
                         add_node(parentobj, preterm);
+                        add_node(preterm, {label: term, class: ["type-PRETERM"]});
                     }
                     node = '';
                 } else {

@@ -11,7 +11,7 @@
     <script src='lib/jquery-3.4.0.js'></script>
     <title>Tree GUI tool</title>
 </head>
-<body>
+<body onload="loadTreeFunc()">
 <h1>Tree GUI tool</h1>
 <textarea id="input" rows="15">
 (VROOT(SIMPX
@@ -40,69 +40,10 @@
     <input type="button" name='removeedge' value='Remove edge' size=50>
 
     <input type="button" name='loadtree' value='Load' size=50>
-    <input type="button" name='savetree' value='Save' size=50>
+    <!--    <input type="button" name='savetree' value='Save' size=50>-->
 </div>
 <svg id="svg-canvas" width=960 height=600></svg>
 <div id="parses"/>
 </body>
-<script id="js">
-    // Create the input graph
-    var g = new dagreD3.graphlib.Graph({compound: true, multigraph: true})
-        .setGraph({})
-        .setDefaultEdgeLabel(function () {
-            return {};
-        });
-    // Here we"re setting nodeclass, which is used by our custom drawNodes function
-    // below.
-    g.setNode('node0', {label: "TOP", class: "type-0 type-TOP"});
-    g.setNode('node1', {label: "S", class: "type-1 type-S"});
-    g.setNode('node2', {label: "NP", class: "type-2 type-NP"});
-    g.setNode('node3', {label: "DT", class: "type-3 type-DT"});
-    g.setNode('node4', {label: "This", class: "type-4 type-TK"});
-    g.setNode('node5', {label: "VP", class: "type-5 type-VP"});
-    g.setNode('node6', {label: "VBZ", class: "type-6 type-VBZ"});
-    g.setNode('node7', {label: "is", class: "type-7 type-TK"});
-    g.setNode('node8', {label: "NP", class: "type-8 type-NP"});
-    g.setNode('node9', {label: "DT", class: "type-9 type-DT"});
-    g.setNode('node10', {label: "an", class: "type-10 type-TK"});
-    g.setNode('node11', {label: "NN", class: "type-11 type-NN"});
-    g.setNode('node12', {label: "example", class: "type-12 type-TK"});
-    g.setNode('node13', {label: ".", class: "type-13 type-."});
-    g.setNode('node14', {label: "sentence", class: "type-14 type-TK"});
-    g.nodes().forEach(function (v) {
-        var node = g.node(v);
-        // Round the corners of the nodes
-        node.rx = node.ry = 5;
-    });
-    // Set up edges, no special attributes.
-    g.setEdge('node3', 'node4', {label: 'hello', class: 'type-3_4'}, {name: 'hell', class: 'type-31_41'});
-    //g.setEdge(3, 4, {label:'hello1', class:'type-13_14'}, {name:'hell1', class:'type-311_411'});
-    //g.setEdge(3, 4, {label:'hello', id:'12', class:'type-3_4'}, {name:'hell', id:'14',class:'type-31_41'});
-
-    g.setEdge('node2', 'node3', {label: 'hi', class: 'type-2_3'});
-    g.setEdge('node1', 'node2', {label: '', class: 'type-1_2'});
-    g.setEdge('node6', 'node7', {label: '', class: 'type-6_7'});
-    g.setEdge('node5', 'node6', {label: '', class: 'type-5_6'});
-    g.setEdge('node9', 'node10', {label: '', class: 'type-9_10'});
-    g.setEdge('node8', 'node9', {label: '', class: 'type-8_9'});
-    g.setEdge('node11', 'node12', {label: '', class: 'type-11_12'});
-    g.setEdge('node8', 'node11', {label: '', class: 'type-8_11'});
-    g.setEdge('node5', 'node8', {label: '', class: 'type-5_8'});
-    g.setEdge('node1', 'node5', {label: '', class: 'type-1_5'});
-    g.setEdge('node13', 'node14', {label: '', class: 'type-13_14'});
-    g.setEdge('node1', 'node13', {label: '', class: 'type-1_13'});
-    g.setEdge('node0', 'node1', {label: '', class: 'type-0_1'});
-    // Create the renderer
-    var render = new dagreD3.render();
-    // Set up an SVG group so that we can translate the final graph.
-    var svg = d3.select("svg"),
-        svgGroup = svg.append("g");
-    // Run the renderer. This is what draws the final graph.
-    render(d3.select("svg g"), g);
-    // Center the graph
-    var xCenterOffset = (svg.attr("width") - g.graph().width) / 2;
-    svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
-    svg.attr("height", g.graph().height + 40);
-</script>
 <script src="tree.js"></script>
 <script src="index.js"></script>
