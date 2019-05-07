@@ -214,6 +214,7 @@ function parseBrackets(brackets) {
         switch (ch) {
             case '(':
                 unmatched_brackets += 1;
+                node = node.trim();
                 if (!isEmpty(node)) {
                     let nonterminal = parseNonterminal(node);
                     add_node(parentobj, nonterminal);
@@ -223,8 +224,9 @@ function parseBrackets(brackets) {
                 break;
             case ')':
                 unmatched_brackets -= 1;
+                node = node.trim();
                 if (!isEmpty(node)) {
-                    let termArray = node.trim().split(/(\s+)/);
+                    let termArray = node.split(/\s+/);
                     if (termArray.length > 1) {
                         const preterm = parseNonterminal(termArray[0]);
                         const term = termArray.slice(1).join(' ').trim();
@@ -243,7 +245,7 @@ function parseBrackets(brackets) {
         }
     }
     console.assert(unmatched_brackets === 0);
-//    console.log(parentobj);
+    console.log(parentobj);
     return parentobj;
 }
 
