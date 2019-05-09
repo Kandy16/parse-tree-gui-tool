@@ -127,7 +127,6 @@ $("input[name='removenode']").click(function () {
             console.log(tempItem.node());
             tempItem.node().focus()
         }
-
     }
 });
 
