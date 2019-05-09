@@ -55,7 +55,7 @@ text {
     stroke-width: 3px;
 }
 
-.showing rect {
+.selecting rect {
     fill: lightblue !important;
 }
 
@@ -65,4 +65,11 @@ textarea {
     margin: 0;
     padding: 3px;
     border: 1px solid #ccc;
+}
+
+rect.btn {
+  stroke:#fff;
+  fill:#fff;
+  fill-opacity:0;
+  stroke-opacity:0;
 }
