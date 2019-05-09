@@ -20,25 +20,37 @@ var selectedNodeIdentifier = undefined;
 var selectedItem = undefined;
 
 
-var selectNodeFunc = function (itemIndex) {
-
+var selectNodeFunc = function (itemIndex, parentIndex, others) {
+    
     if (selectedItem != undefined) {
-        selectedItem.classed('showing', false);
+        selectedItem.classed('selecting', false);
         console.log('Previous node:', selectedItem);
+        selectedDOMElement = selectedItem['_groups'][0][0];
+        console.log(selectedDOMElement.lastChild);
+        console.log(selectedDOMElement.removeChild);
+        selectedDOMElement.removeChild(selectedDOMElement.lastChild);
     }
 
     console.log('Selected Node index:', itemIndex);
+    //console.log('Parent Node Index:',parentIndex);
+    //console.log('Others:',others);
+
     selectedNodeIdentifier = itemIndex;
     selectedItem = d3.select(this);
-    selectedItem.classed('showing', true)
+    console.log(selectedItem)
+    console.log(selectedItem['_groups'][0][0].parentElement)
+    selectedItem = d3.select(selectedItem['_groups'][0][0].parentElement);
+    console.log(selectedItem)
+    selectedItem.classed('selecting', true);
+    settingsGroupButtonsAddFunc()
 };
 
 
 var deselectNodeFunc = function (itemIndex) {
-    console.log('De-Selected Item index:', itemIndex);
+    /*console.log('De-Selected Item index:', itemIndex);
     selectedIdentifier = undefined;
     selectedItem = undefined;
-    d3.select(this).classed('showing', false);
+    d3.select(this).classed('showing', false);*/
 };
 
 
@@ -47,16 +59,17 @@ var doubleClickNodeFunc = function (itemIndex) {
     console.log(g.node(itemIndex))
 };
 
-
-$("input[name='addnode']").click(function () {
+var addNodeClickFunc = function(){
     console.log('Add node clicked');
     if (selectedNodeIdentifier != undefined) {
+        nodesCount = g.nodeCount()
         nodesCount += 1;
         nodeString = nodesCount.toString();
         g.setNode(nodesCount, {
             label: 'node' + nodeString,
             class: 'type-' + nodeString
         });
+        edgesCount = g.edgeCount()
         edgesCount += 1;
         g.setEdge(selectedNodeIdentifier, nodesCount, {
             label: edgesCount.toString(),
@@ -66,6 +79,9 @@ $("input[name='addnode']").click(function () {
 
         renderGraphics();
         updateGraphSize();
+        
+        var svg = d3.select('svg')
+        var gNode = svg.select('g')
 
         var newCreatedItem = gNode.select('.type-' + nodeString);
         newCreatedItem.on('click', selectNodeFunc);
@@ -75,17 +91,18 @@ $("input[name='addnode']").click(function () {
         var newCreatedEdge = gNode.select('.type-' + selectedNodeIdentifier + '_' + nodeString);
         newCreatedEdge.on('focus', selectEdgeFunc);
 
-        console.log(newCreatedItem);
-        console.log(newCreatedItem.node());
-        newCreatedItem.node().focus();
+        //console.log(newCreatedItem);
+        //console.log(newCreatedItem.node());
+        //newCreatedItem.node().focus();
 
-        console.log(newCreatedEdge);
-        console.log(newCreatedEdge.node())
+        //console.log(newCreatedEdge);
+        //console.log(newCreatedEdge.node())
 
     }
-});
+}
+$("input[name='addnode']").click(addNodeClickFunc);
 
-$("input[name='removenode']").click(function () {
+var removeNodeClickFunc = function () {
     console.log('Remove node clicked');
     if (selectedNodeIdentifier != undefined) {
         successorsList = g.successors(selectedNodeIdentifier);
@@ -116,7 +133,10 @@ $("input[name='removenode']").click(function () {
         updateGraphSize();
 
         selectedNodeIdentifier = undefined;
-        //selectedItem = undefined
+        selectedItem = undefined
+        
+        var svg = d3.select('svg')
+        var gNode = svg.select('g')
 
         if (predecessorsList.length > 0) {
             temp = predecessorsList[0];
@@ -124,14 +144,20 @@ $("input[name='removenode']").click(function () {
         }
         if (tempItem != undefined) {
             console.log(tempItem);
-            console.log(tempItem.node());
-            tempItem.node().focus()
+            //console.log(tempItem.node());
+            //tempItem.node().focus()
         }
 
     }
-});
+}
 
-$("input[name='left']").click(function (item) {
+$("input[name='removenode']").click(removeNodeClickFunc);
+
+var editNodeClickFunc = function(){
+    console.log('Edit button clicked!!')
+}
+
+var moveLeftClickFunc = function() {
     console.log('move left clicked');
     if (selectedNodeIdentifier != undefined) {
         console.log('There are nodes');
@@ -213,8 +239,12 @@ $("input[name='left']").click(function (item) {
     } else {
         console.log('No nodes selected !!!')
     }
-});
+}
 
+$("input[name='left']").click(moveLeftClickFunc);
+
+var moveRightClickFunc = moveLeftClickFunc
+$("input[name='right']").click(moveRightClickFunc);
 
 var selectedEdgeIdentifier = undefined;
 var selectedEdge = undefined;
@@ -284,12 +314,20 @@ var loadTreeFunc = function () {
             svg.selectAll("*").remove();
             drawTree(tree, svg);
 
-            var allNodes = svg.selectAll('g.node');
-            allNodes.on('click', selectNodeFunc);
-            allNodes.on('blur', deselectNodeFunc);
-            allNodes.on('dblclick', doubleClickNodeFunc);
-            var allEdges = svg.selectAll('g.edgePath');
-            allEdges.on('focus', selectEdgeFunc);
+            var allNodes = svg.selectAll('g.node>rect');
+            console.log('All Nodes:',allNodes)
+            var result = allNodes.on('click', selectNodeFunc);
+            console.log(result)
+            
+            var allNodeLabels = svg.selectAll('g.node>g');
+            console.log('All Node Labels:',allNodeLabels)
+            var result = allNodeLabels.on('click', selectNodeFunc);
+            console.log(result)
+            
+            //allNodes.on('blur', deselectNodeFunc);
+            //allNodes.on('dblclick', doubleClickNodeFunc);
+            //var allEdges = svg.selectAll('g.edgePath');
+            //allEdges.on('focus', selectEdgeFunc);
         }
     }
 };
@@ -302,6 +340,34 @@ $("input[name='loadtree']").click(loadTreeFunc);
 //     console.log(g.toJson())
 //
 // });
+
+var settingsGroupButtonsAddFunc = function(args){
+    var addNode = "<g class='addGroup'><g><image xlink:href='open-iconic-master/png/plus-4x.png' x='0' y='20' height='20' width='20'></image> <rect class='btn' onclick='addNodeClickFunc()' x='0' y='20' width='20' height='20'/></g></g>";
+    
+    var deleteNode = "<g><image xlink:href='open-iconic-master/png/delete-4x.png' x='30' y='20' height='20' width='20'></image> <rect class='btn' onclick='removeNodeClickFunc()' x='30' y='20' width='20' height='20'/></g>";
+
+    var editNode = "<g><image xlink:href='open-iconic-master/png/wrench-4x.png' x='60' y='20' height='20' width='20'></image> <rect class='btn' onclick='editNodeClickFunc()' x='60' y='20' width='20' height='20'/></g>";
+    
+    var moveLeftNode = "<g><image xlink:href='open-iconic-master/png/caret-left-4x.png' x='90' y='20' height='20' width='20'></image> <rect class='btn' onclick='moveLeftClickFunc()' x='90' y='20' width='20' height='20'/></g>"; 
+    
+    var moveRightNode = "<g><image xlink:href='open-iconic-master/png/caret-right-4x.png' x='120' y='20' height='20' width='20'></image> <rect class='btn' onclick='moveRightClickFunc()' x='120' y='20' width='20' height='20'/></g>" ;
+    
+    //console.log(args);
+    if(selectedItem != undefined){
+        console.log(selectedItem);
+        console.log(selectedItem['_groups'][0][0].innerHTML);
+        
+        var selectGNode = selectedItem['_groups'][0][0];
+        var parentGNode = selectGNode.parentElement;
+        console.log(parentGNode)
+        elements = "<g class='settingsGroup'>" + addNode + deleteNode + editNode + 
+                   moveLeftNode + moveRightNode + "</g>";
+        selectGNode.innerHTML = selectGNode.innerHTML + elements;
+    }
+}
+
+$("input[name='experiment']").click(settingsGroupButtonsAddFunc);
+
 
 function updateGraphSize() {
     const svg = d3.select("svg");
