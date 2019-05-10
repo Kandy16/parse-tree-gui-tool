@@ -13,7 +13,6 @@ function renderGraphics() {
     render(d3.select("svg g"), g);
 }
 
-
 var g = undefined;
 var render = undefined;
 var selectedNodeIdentifier = undefined;
@@ -28,7 +27,7 @@ var selectNodeFunc = function (itemIndex, parentIndex, others) {
         selectedDOMElement = selectedItem['_groups'][0][0];
         console.log(selectedDOMElement.lastChild);
         console.log(selectedDOMElement.removeChild);
-        //selectedDOMElement.removeChild(selectedDOMElement.lastChild);
+        selectedDOMElement.removeChild(selectedDOMElement.lastChild);
     }
 
     console.log('Selected Node index:', itemIndex);
@@ -341,15 +340,15 @@ $("input[name='loadtree']").click(loadTreeFunc);
 // });
 
 var settingsGroupButtonsAddFunc = function(args){
-    var addNode = "<g class='addGroup'><g><image xlink:href='open-iconic-master/png/plus-4x.png' x='0' y='20' height='20' width='20'></image> <rect class='btn' onclick='addNodeClickFunc()' x='0' y='20' width='20' height='20'/></g></g>";
+    var addNode = "<g class='addGroup'><g><image xlink:href='lib/open-iconic-master/png/plus-4x.png' x='0' y='20' height='20' width='20'></image> <rect class='btn' onclick='addNodeClickFunc()' x='0' y='20' width='20' height='20'/></g></g>";
     
-    var deleteNode = "<g><image xlink:href='open-iconic-master/png/delete-4x.png' x='30' y='20' height='20' width='20'></image> <rect class='btn' onclick='removeNodeClickFunc()' x='30' y='20' width='20' height='20'/></g>";
+    var deleteNode = "<g><image xlink:href='lib/open-iconic-master/png/delete-4x.png' x='30' y='20' height='20' width='20'></image> <rect class='btn' onclick='removeNodeClickFunc()' x='30' y='20' width='20' height='20'/></g>";
 
-    var editNode = "<g><image xlink:href='open-iconic-master/png/wrench-4x.png' x='60' y='20' height='20' width='20'></image> <rect class='btn' onclick='editNodeClickFunc()' x='60' y='20' width='20' height='20'/></g>";
+    var editNode = "<g><image xlink:href='lib/open-iconic-master/png/wrench-4x.png' x='60' y='20' height='20' width='20'></image> <rect class='btn' onclick='editNodeClickFunc()' x='60' y='20' width='20' height='20'/></g>";
     
-    var moveLeftNode = "<g><image xlink:href='open-iconic-master/png/caret-left-4x.png' x='90' y='20' height='20' width='20'></image> <rect class='btn' onclick='moveLeftClickFunc()' x='90' y='20' width='20' height='20'/></g>"; 
+    var moveLeftNode = "<g><image xlink:href='lib/open-iconic-master/png/caret-left-4x.png' x='90' y='20' height='20' width='20'></image> <rect class='btn' onclick='moveLeftClickFunc()' x='90' y='20' width='20' height='20'/></g>";
     
-    var moveRightNode = "<g><image xlink:href='open-iconic-master/png/caret-right-4x.png' x='120' y='20' height='20' width='20'></image> <rect class='btn' onclick='moveRightClickFunc()' x='120' y='20' width='20' height='20'/></g>" ;
+    var moveRightNode = "<g><image xlink:href='lib/open-iconic-master/png/caret-right-4x.png' x='120' y='20' height='20' width='20'></image> <rect class='btn' onclick='moveRightClickFunc()' x='120' y='20' width='20' height='20'/></g>" ;
     
     //console.log(args);
     if(selectedItem != undefined){
@@ -371,6 +370,78 @@ $("input[name='experiment']").click(settingsGroupButtonsAddFunc);
 function updateGraphSize() {
     const svg = d3.select("svg");
     var xCenterOffset = (svg.attr("width") - g.graph().width) / 2;
+    svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
+    svg.attr("height", g.graph().height + 40);
+}
+
+//creates a new div for a new parse
+function create_graph_div(tree) {
+    let div = document.createElement("DIV");
+    let pre = document.createElement("PRE");
+    pre.innerHTML = parse2str(tree);
+    div.appendChild(pre);
+    return div;
+}
+
+// visualize parse tree using dagre-d3
+function build_graph(graph, tree, startindex = 1) {
+    let label = tree.label;
+    if (tree.morph) {
+        label += '-' + tree.morph
+    }
+    const graph_node = {label: label,};
+    if (tree.class) {
+        graph_node.class = tree.class.join(' ');
+    }
+    graph.setNode(startindex, graph_node);
+    let child_index = startindex * 10;
+    let children = tree.children;
+    if (children) {
+        for (let i in children) {
+            let child = children[i];
+            build_graph(graph, child, child_index);
+            const child_edge = {};
+            if (child.gf) {
+                child_edge.label = child.gf;
+            }
+            graph.setEdge(startindex, child_index, child_edge);
+            child_index += 1;
+        }
+    }
+}
+
+// use dagre and d3 to draw a tree on the svg_elem
+function drawTree(tree, svg) {
+    // Create the input graph
+    // Available options: https://github.com/dagrejs/dagre/wiki
+    g = new dagreD3.graphlib.Graph()
+        .setGraph({nodesep: 30, ranksep: 30})
+        //      .setGraph({})
+        .setDefaultEdgeLabel(function () {
+            return {};
+        });
+
+    build_graph(g, tree);
+
+    g.nodes().forEach(function (v) {
+        let node = g.node(v);
+        // Round the corners of the nodes
+        node.rx = node.ry = 5;
+    });
+
+    // Create the renderer
+    render = new dagreD3.render();
+
+    // Set up an SVG group so that we can translate the final graph.
+    // const svg = d3.select(svg_elem),
+    svgGroup = svg.append("g");
+
+    // Run the renderer. This is what draws the final graph.
+    render(d3.select("svg g"), g);
+
+    svg.attr("width", g.graph().width + 40);
+    // Center the graph
+    const xCenterOffset = (svg.attr("width") - g.graph().width) / 2;
     svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
     svg.attr("height", g.graph().height + 40);
 }
