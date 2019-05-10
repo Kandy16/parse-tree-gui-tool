@@ -28,7 +28,7 @@ var selectNodeFunc = function (itemIndex, parentIndex, others) {
         selectedDOMElement = selectedItem['_groups'][0][0];
         console.log(selectedDOMElement.lastChild);
         console.log(selectedDOMElement.removeChild);
-        selectedDOMElement.removeChild(selectedDOMElement.lastChild);
+        //selectedDOMElement.removeChild(selectedDOMElement.lastChild);
     }
 
     console.log('Selected Node index:', itemIndex);

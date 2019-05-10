@@ -71,7 +71,7 @@ window.edittext = function (localpoint, svg, dest, text) {
 
     textdiv.focus();
 };
-/*
+
 var svg = document.getElementById('svg-canvas');
 $('#svg-canvas').click(function (evt) {
     var localpoint, text, dest;
@@ -84,10 +84,10 @@ $('#svg-canvas').click(function (evt) {
       	localpoint = getlocalmousecoord(svg, evt);
     }
     else {
+		return;
     }
     console.log('Event : ',evt)
     console.log('Local Point : ',localpoint)
-    //return;
-    //edittext(localpoint, svg, dest, text);
+
+//    edittext(localpoint, svg, dest, text);
 });
-*/
