@@ -1,3 +1,45 @@
+class Graph {
+    constructor(tree) {
+        this.trees = [];
+        this.trees.push(tree);
+        this.history = [];
+        this.redo = []
+    }
+
+    addNode(parentId, label) {
+        let nodeStrPath = parentId.split('');
+        let nodeDigitsPath = nodeStrPath.map(Number);
+        let treeId = nodeDigitsPath.shift() - 1;
+
+        let tree = this.trees[treeId];
+        let node = tree;
+        let i;
+        while( (i = nodeDigitsPath.shift()) !== undefined ) {
+            if (i > node.children.length) {
+                console.log(`Path: ${parentId} was not found`);
+                return;
+            }
+            node = node.children[i-1];
+        }
+        if (node !== undefined) {
+            let addedNodeId = add_node(node, {label: label});
+            this.history.push([this.delNode, this, [addedNodeId]])
+        }
+    }
+
+    delNode(nodeId) {
+        console.log("delNode called");
+    }
+
+    undo() {
+        let operation = this.history.pop();
+        if (operation !== undefined) {
+            this.redo.push(operation);
+            Reflect.apply.apply(null, operation);
+        }
+    }
+}
+
 /*
     Takes a nonterminal in form 'PH-GF-MORPH' and returns an object
     {
@@ -60,7 +102,7 @@ function parsePreterminal(ntstr) {
 
 
 // append a new child to the parent and set backreference child.parent
-function add_node(parent, child) {
+function add_node(parent, child, rootId = 1) {
     if (parent) {
         if (!parent.hasOwnProperty('children')) {
             parent.children = [];
@@ -69,12 +111,13 @@ function add_node(parent, child) {
         child.parent = parent;
         child.id = parent.id * 10 + parent.children.length;
     } else {
-        child.id = 0;
+        child.id = rootId;
     }
     if (!child.hasOwnProperty('class')) {
         child.class = [];
     }
     child.class.push('type-' + child.id);
+    return child.id;
 }
 
 // returns string representaiton of a node

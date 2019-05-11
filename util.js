@@ -37,6 +37,13 @@ function setInputFields(vars) {
     }
 }
 
+function first_digit(n) {
+    while (n > 9) {
+        n /= 10;
+    }
+    return n;
+}
+
 // window.onload = function () {
 //     setInputFields(getUrlVars());
 //     parse();

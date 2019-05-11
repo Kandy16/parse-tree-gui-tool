@@ -13,6 +13,8 @@ function renderGraphics() {
     render(d3.select("svg g"), g);
 }
 
+var graph = undefined;
+
 var g = undefined;
 var render = undefined;
 var selectedNodeIdentifier = undefined;
@@ -303,7 +305,13 @@ var loadTreeFunc = function () {
     const parse_str = document.querySelector("#input").value.trim().replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/g, ' ');
     if (parse_str.startsWith('(') && parse_str.endsWith(')')) {
         const tree = parseBrackets(parse_str);
+
         if (tree) {
+            graph = new Graph(tree);
+            graph.addNode('111211', 'first_added_node');
+            graph.undo();
+
+
             var parentDiv = document.querySelector("#parses");
             removeAllChildren(parentDiv);
             const div = parentDiv.appendChild(create_graph_div(tree));
