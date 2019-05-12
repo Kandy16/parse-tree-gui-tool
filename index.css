@@ -68,8 +68,41 @@ textarea {
 }
 
 rect.btn {
-  stroke:#fff;
-  fill:#fff;
-  fill-opacity:0;
-  stroke-opacity:0;
+    stroke: #fff;
+    fill: #fff;
+    fill-opacity: 0;
+    stroke-opacity: 0;
 }
+
+code {
+    width: 100%;
+    display: table;
+}
+
+code.log {
+    background-color: #7cfc00;
+}
+
+code.warn {
+    background-color: #ffff00;
+}
+
+code.error {
+    background-color: #ff0000;
+}
+
+.fixed-content {
+    border: 1px solid #ccc;
+    height: 150px;
+    resize: vertical;
+    overflow: auto;
+    background: #fff;
+}
+
+/*.fixed-content {*/
+/*    top: 0;*/
+/*    bottom:0;*/
+/*    position:fixed;*/
+/*    overflow-y:scroll;*/
+/*    overflow-x:hidden;*/
+/*}*/

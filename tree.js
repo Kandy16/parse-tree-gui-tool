@@ -3,41 +3,103 @@ class Graph {
         this.trees = [];
         this.trees.push(tree);
         this.history = [];
-        this.redo = []
+        this.redo_history = []
+        this.active_history = this.history;
     }
 
-    addNode(parentId, label) {
-        let nodeStrPath = parentId.split('');
+
+    findNode(nodeId) {
+        let nodeStrPath = nodeId.split('');
         let nodeDigitsPath = nodeStrPath.map(Number);
         let treeId = nodeDigitsPath.shift() - 1;
 
         let tree = this.trees[treeId];
         let node = tree;
         let i;
-        while( (i = nodeDigitsPath.shift()) !== undefined ) {
+        while ((i = nodeDigitsPath.shift()) !== undefined) {
             if (i > node.children.length) {
-                console.log(`Path: ${parentId} was not found`);
+                console.log(`Path: ${nodeId} was not found`);
                 return;
             }
-            node = node.children[i-1];
+            node = node.children[i - 1];
         }
+        return node
+    }
+
+    addEdge(parentId, childId, label = undefined) {
+
+    }
+
+    removeEdge(parentId, childId) {
+
+    }
+
+    leftShift(nodeId) {
+
+    }
+
+    rightShift(nodeId) {
+
+    }
+
+    addNode(parentId, label) {
+        let node = this.findNode(parentId);
         if (node !== undefined) {
-            let addedNodeId = add_node(node, {label: label});
-            this.history.push([this.delNode, this, [addedNodeId]])
+            let addedNodeId = addNode(node, {label: label});
+            this.active_history.push([this.removeNode, this, [addedNodeId.toString()]])
         }
     }
 
-    delNode(nodeId) {
-        console.log("delNode called");
+    addNodeAt(parentId, label, index) {
+        let node = this.findNode(parentId);
+        if (node !== undefined) {
+            let addedNodeId = insertNode(node, {label: label}, index);
+            this.active_history.push([this.removeNode, this, [addedNodeId.toString()]]);
+        }
+    }
+
+    removeNode(nodeId) {
+        console.log("removeNode called");
+        let nodeStrPath = nodeId.split('');
+        let nodeDigitsPath = nodeStrPath.map(Number);
+        let treeId = nodeDigitsPath.shift() - 1;
+
+        let tree = this.trees[treeId];
+        let node_index = nodeDigitsPath.pop() - 1;
+        let parent = tree;
+        let i;
+        while ((i = nodeDigitsPath.shift()) !== undefined) {
+            if (i > parent.children.length) {
+                console.log(`Path: ${nodeId} was not found`);
+                return;
+            }
+            parent = parent.children[i - 1];
+        }
+
+        if (parent !== undefined) {
+            let node = parent.children.splice(node_index, 1)[0];
+            let node_label = node.label;
+            this.active_history.push([this.addNodeAt, this, [parent.id.toString(), node_label, node_index]])
+        }
     }
 
     undo() {
         let operation = this.history.pop();
         if (operation !== undefined) {
-            this.redo.push(operation);
+            this.active_history = this.redo_history;
+            Reflect.apply.apply(null, operation);
+            this.active_history = this.history;
+        }
+    }
+
+    redo() {
+        let operation = this.redo_history.pop();
+        if (operation !== undefined) {
             Reflect.apply.apply(null, operation);
         }
     }
+
+
 }
 
 /*
@@ -102,12 +164,31 @@ function parsePreterminal(ntstr) {
 
 
 // append a new child to the parent and set backreference child.parent
-function add_node(parent, child, rootId = 1) {
+function addNode(parent, child, rootId = 1) {
     if (parent) {
         if (!parent.hasOwnProperty('children')) {
             parent.children = [];
         }
         parent.children.push(child);
+        child.parent = parent;
+        child.id = parent.id * 10 + parent.children.length;
+    } else {
+        child.id = rootId;
+    }
+    if (!child.hasOwnProperty('class')) {
+        child.class = [];
+    }
+    child.class.push('type-' + child.id);
+    return child.id;
+}
+
+// append a new child to the parent and set backreference child.parent
+function insertNode(parent, child, at = 0, rootId = 1) {
+    if (parent) {
+        if (!parent.hasOwnProperty('children')) {
+            parent.children = [];
+        }
+        parent.children.splice(at, 0, child);
         child.parent = parent;
         child.id = parent.id * 10 + parent.children.length;
     } else {
@@ -183,7 +264,7 @@ function parseBrackets(brackets) {
                 node = node.trim();
                 if (!isEmpty(node)) {
                     let nonterminal = parseNonterminal(node);
-                    add_node(parentobj, nonterminal);
+                    addNode(parentobj, nonterminal);
                     parentobj = nonterminal;
                     node = '';
                 }
@@ -196,8 +277,8 @@ function parseBrackets(brackets) {
                     if (termArray.length > 1) {
                         const preterm = parsePreterminal(termArray[0]);
                         const term = termArray.slice(1).join(' ').trim();
-                        add_node(parentobj, preterm);
-                        add_node(preterm, {label: term, class: ["type-PRETERM"]});
+                        addNode(parentobj, preterm);
+                        addNode(preterm, {label: term, class: ["type-PRETERM"]});
                     }
                     node = '';
                 } else {

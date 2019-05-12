@@ -21,6 +21,8 @@ var selectedNodeIdentifier = undefined;
 var selectedItem = undefined;
 
 
+
+
 var selectNodeFunc = function (itemIndex, parentIndex, others) {
     
     if (selectedItem != undefined) {
@@ -310,11 +312,12 @@ var loadTreeFunc = function () {
             graph = new Graph(tree);
             graph.addNode('111211', 'first_added_node');
             graph.undo();
+            graph.redo();
 
 
-            var parentDiv = document.querySelector("#parses");
+            var parentDiv = document.querySelector("div#parses");
             removeAllChildren(parentDiv);
-            const div = parentDiv.appendChild(create_graph_div(tree));
+            parentDiv.appendChild(create_graph_div(tree));
             // const svg = div.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "svg"));
             const svg = d3.select("svg");
             svg.selectAll("*").remove();

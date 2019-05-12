@@ -56,3 +56,22 @@ function catch_enter(event, function_on_event) {
     }
     return true;
 }
+
+var log = document.querySelector('#log');
+
+['log','warn','error'].forEach(function (verb) {
+    console[verb] = (function (method, verb, log) {
+        return function (text) {
+            method(text);
+            // handle distinguishing between methods any way you'd like
+            var msg = document.createElement('code');
+            msg.classList.add(verb);
+            msg.textContent = verb + ': ' + text;
+            log.appendChild(msg);
+        };
+    })(console[verb].bind(console), verb, log);
+});
+
+console.log("Info message");
+console.warn("Warning message");
+console.error("Error message");
