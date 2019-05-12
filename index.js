@@ -21,10 +21,8 @@ var selectedNodeIdentifier = undefined;
 var selectedItem = undefined;
 
 
-
-
 var selectNodeFunc = function (itemIndex, parentIndex, others) {
-    
+
     if (selectedItem != undefined) {
         selectedItem.classed('selecting', false);
         console.log('Previous node:', selectedItem);
@@ -40,10 +38,10 @@ var selectNodeFunc = function (itemIndex, parentIndex, others) {
 
     selectedNodeIdentifier = itemIndex;
     selectedItem = d3.select(this);
-    console.log(selectedItem)
-    console.log(selectedItem['_groups'][0][0].parentElement)
+    console.log(selectedItem);
+    console.log(selectedItem['_groups'][0][0].parentElement);
     selectedItem = d3.select(selectedItem['_groups'][0][0].parentElement);
-    console.log(selectedItem)
+    console.log(selectedItem);
     selectedItem.classed('selecting', true);
     settingsGroupButtonsAddFunc()
 };
@@ -62,17 +60,17 @@ var doubleClickNodeFunc = function (itemIndex) {
     console.log(g.node(itemIndex))
 };
 
-var addNodeClickFunc = function(){
+var addNodeClickFunc = function () {
     console.log('Add node clicked');
     if (selectedNodeIdentifier != undefined) {
-        nodesCount = g.nodeCount()
+        nodesCount = g.nodeCount();
         nodesCount += 1;
         nodeString = nodesCount.toString();
         g.setNode(nodesCount, {
             label: 'node' + nodeString,
             class: 'type-' + nodeString
         });
-        edgesCount = g.edgeCount()
+        edgesCount = g.edgeCount();
         edgesCount += 1;
         g.setEdge(selectedNodeIdentifier, nodesCount, {
             label: edgesCount.toString(),
@@ -82,9 +80,9 @@ var addNodeClickFunc = function(){
 
         renderGraphics();
         updateGraphSize();
-        
-        var svg = d3.select('svg')
-        var gNode = svg.select('g')
+
+        var svg = d3.select('svg');
+        var gNode = svg.select('g');
 
         var newCreatedItem = gNode.select('.type-' + nodeString);
         newCreatedItem.on('click', selectNodeFunc);
@@ -102,7 +100,7 @@ var addNodeClickFunc = function(){
         //console.log(newCreatedEdge.node())
 
     }
-}
+};
 $("input[name='addnode']").click(addNodeClickFunc);
 
 var removeNodeClickFunc = function () {
@@ -136,10 +134,10 @@ var removeNodeClickFunc = function () {
         updateGraphSize();
 
         selectedNodeIdentifier = undefined;
-        selectedItem = undefined
-        
-        var svg = d3.select('svg')
-        var gNode = svg.select('g')
+        selectedItem = undefined;
+
+        var svg = d3.select('svg');
+        var gNode = svg.select('g');
 
         if (predecessorsList.length > 0) {
             temp = predecessorsList[0];
@@ -151,15 +149,15 @@ var removeNodeClickFunc = function () {
             //tempItem.node().focus()
         }
     }
-}
+};
 
 $("input[name='removenode']").click(removeNodeClickFunc);
 
-var editNodeClickFunc = function(){
+var editNodeClickFunc = function () {
     console.log('Edit button clicked!!')
-}
+};
 
-var moveLeftClickFunc = function() {
+var moveLeftClickFunc = function () {
     console.log('move left clicked');
     if (selectedNodeIdentifier != undefined) {
         console.log('There are nodes');
@@ -241,11 +239,11 @@ var moveLeftClickFunc = function() {
     } else {
         console.log('No nodes selected !!!')
     }
-}
+};
 
 $("input[name='left']").click(moveLeftClickFunc);
 
-var moveRightClickFunc = moveLeftClickFunc
+var moveRightClickFunc = moveLeftClickFunc;
 $("input[name='right']").click(moveRightClickFunc);
 
 var selectedEdgeIdentifier = undefined;
@@ -313,7 +311,8 @@ var loadTreeFunc = function () {
             graph.addNode('111211', 'first_added_node');
             graph.undo();
             graph.redo();
-
+            // graph.rightShift('1133');
+            graph.leftShift('1132');
 
             var parentDiv = document.querySelector("div#parses");
             removeAllChildren(parentDiv);
@@ -324,15 +323,15 @@ var loadTreeFunc = function () {
             drawTree(tree, svg);
 
             var allNodes = svg.selectAll('g.node>rect');
-            console.log('All Nodes:',allNodes)
+            console.log('All Nodes:', allNodes);
             var result = allNodes.on('click', selectNodeFunc);
-            console.log(result)
-            
+            console.log(result);
+
             var allNodeLabels = svg.selectAll('g.node>g');
-            console.log('All Node Labels:',allNodeLabels)
+            console.log('All Node Labels:', allNodeLabels);
             var result = allNodeLabels.on('click', selectNodeFunc);
             console.log(result)
-            
+
             //allNodes.on('blur', deselectNodeFunc);
             //allNodes.on('dblclick', doubleClickNodeFunc);
             //var allEdges = svg.selectAll('g.edgePath');
@@ -350,30 +349,30 @@ $("input[name='loadtree']").click(loadTreeFunc);
 //
 // });
 
-var settingsGroupButtonsAddFunc = function(args){
+var settingsGroupButtonsAddFunc = function (args) {
     var addNode = "<g class='addGroup'><g><image xlink:href='lib/open-iconic-master/png/plus-4x.png' x='0' y='20' height='20' width='20'></image> <rect class='btn' onclick='addNodeClickFunc()' x='0' y='20' width='20' height='20'/></g></g>";
-    
+
     var deleteNode = "<g><image xlink:href='lib/open-iconic-master/png/delete-4x.png' x='30' y='20' height='20' width='20'></image> <rect class='btn' onclick='removeNodeClickFunc()' x='30' y='20' width='20' height='20'/></g>";
 
     var editNode = "<g><image xlink:href='lib/open-iconic-master/png/wrench-4x.png' x='60' y='20' height='20' width='20'></image> <rect class='btn' onclick='editNodeClickFunc()' x='60' y='20' width='20' height='20'/></g>";
-    
+
     var moveLeftNode = "<g><image xlink:href='lib/open-iconic-master/png/caret-left-4x.png' x='90' y='20' height='20' width='20'></image> <rect class='btn' onclick='moveLeftClickFunc()' x='90' y='20' width='20' height='20'/></g>";
-    
-    var moveRightNode = "<g><image xlink:href='lib/open-iconic-master/png/caret-right-4x.png' x='120' y='20' height='20' width='20'></image> <rect class='btn' onclick='moveRightClickFunc()' x='120' y='20' width='20' height='20'/></g>" ;
-    
+
+    var moveRightNode = "<g><image xlink:href='lib/open-iconic-master/png/caret-right-4x.png' x='120' y='20' height='20' width='20'></image> <rect class='btn' onclick='moveRightClickFunc()' x='120' y='20' width='20' height='20'/></g>";
+
     //console.log(args);
-    if(selectedItem != undefined){
+    if (selectedItem != undefined) {
         console.log(selectedItem);
         console.log(selectedItem['_groups'][0][0].innerHTML);
-        
+
         var selectGNode = selectedItem['_groups'][0][0];
         var parentGNode = selectGNode.parentElement;
-        console.log(parentGNode)
-        elements = "<g class='settingsGroup'>" + addNode + deleteNode + editNode + 
-                   moveLeftNode + moveRightNode + "</g>";
+        console.log(parentGNode);
+        elements = "<g class='settingsGroup'>" + addNode + deleteNode + editNode +
+            moveLeftNode + moveRightNode + "</g>";
         selectGNode.innerHTML = selectGNode.innerHTML + elements;
     }
-}
+};
 
 $("input[name='experiment']").click(settingsGroupButtonsAddFunc);
 

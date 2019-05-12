@@ -3,7 +3,7 @@ class Graph {
         this.trees = [];
         this.trees.push(tree);
         this.history = [];
-        this.redo_history = []
+        this.redo_history = [];
         this.active_history = this.history;
     }
 
@@ -26,20 +26,87 @@ class Graph {
         return node
     }
 
-    addEdge(parentId, childId, label = undefined) {
+    setEdgeLabel(nodeId, label) {
+        let node = this.findNode(nodeId);
+        let old_label = node.gf;
+        node.gf = label;
+        this.active_history.push([this.setEdgeLabel, this, [nodeId, old_label]]);
+    }
 
+
+    addEdge(parentId, childId, label = undefined) {
+        let parent = findNode(parentId);
+        let childDigitsPath = childId.split('').map(Number);
+        let childTreeId = childDigitsPath.shift() - 1;
+        let child = this.trees.splice(childTreeId, 1)[0];
+        if (childDigitsPath === undefined) {
+            console.error(`Node ${child.label} was not found!`);
+            return;
+        } else if (childDigitsPath.length != 0 || child.parent !== undefined) {
+            console.warn(`Node ${child.label} has already an incoming edge. Remove this edge first!`);
+            return;
+        }
+        parent.children.push(child);
+        child.parent = parent;
+        if (label !== undefined) {
+            child.gf = label;
+        }
+        let parentDigitsPath = parentId.split('').map(Number);
+        let parentTreeId = childDigitsPath.shift() - 1;
+        let parentTree = this.trees[parentTreeId];
+        numerateTree(parentTree, parentTreeId + 1);
+        // TODO: add history here
     }
 
     removeEdge(parentId, childId) {
-
+        if (childId.indexOf(parentId) !== -1) {
+            console.error(`Wrong parent id: ${parentId} and child id: ${childId}`);
+            return;
+        }
+        let parent = findNode(parentId);
+        let childDigitsPath = childId.split('').map(Number);
+        let childIndex = childDigitsPath.pop() - 1;
+        let child = parent.children.splice(childIndex, 1)[0];
+        child.parent = undefined;
+        numerateTree(child, this.trees.length);
+        this.trees.push(child);
+        // TODO: add history here
     }
 
     leftShift(nodeId) {
-
+        let nodeIndex = Number(nodeId.slice(-1)) - 1;
+        let parent = this.findNode(nodeId.slice(0,-1));
+        if (parent.children.length == 1) {
+            console.warn(`Parent node: ${parent.label} contains only one child. Nothing is changed!`);
+            return;
+        } else if (nodeIndex == 0) {
+            console.warn(`The selected node is already thge leftmost child of: ${parent.label}. Nothing is changed!`);
+            return;
+        }
+        let child = parent.children.splice(nodeIndex, 1)[0];
+        parent.children.splice(nodeIndex - 1, 0, child);
+        let parentTreeId = Number(nodeId.slice(0, 1)) - 1;
+        let parentTree = this.trees[parentTreeId];
+        numerateTree(parentTree, parentTreeId + 1);
+        this.active_history.push([this.rightShift, this, [child.id.toString()]]);
     }
 
     rightShift(nodeId) {
-
+        let nodeIndex = Number(nodeId.slice(-1)) - 1;
+        let parent = this.findNode(nodeId.slice(0,-1));
+        if (parent.children.length == 1) {
+            console.warn(`Parent node: ${parent.label} contains only one child. Nothing is changed!`);
+            return;
+        } else if (nodeIndex == parent.children.length - 1) {
+            console.warn(`The selected node is already the rightmost child of: ${parent.label}. Nothing is changed!`);
+            return;
+        }
+        let child = parent.children.splice(nodeIndex, 1)[0];
+        parent.children.splice(nodeIndex + 1, 0, child);
+        let parentTreeId = Number(nodeId.slice(0, 1)) - 1;
+        let parentTree = this.trees[parentTreeId];
+        numerateTree(parentTree, parentTreeId + 1);
+        this.active_history.push([this.leftShift, this, [child.id.toString()]]);
     }
 
     addNode(parentId, label) {
@@ -236,16 +303,16 @@ function parse2str(tree, level = 0) {
     return result + ')';
 }
 
-// function numerateTree(node, gorn = 0) {
-//     node.id = gorn;
-//     gorn *= 10;
-//     if (node.hasOwnProperty('children')) {
-//         children = node.children;
-//         for (let i = 0; i < children.length; i++) {
-//             numerateTree(children[i], gorn + (i + 1));
-//         }
-//     }
-// }
+function numerateTree(node, gorn = 0) {
+    node.id = gorn;
+    gorn *= 10;
+    if (node.hasOwnProperty('children')) {
+        children = node.children;
+        for (let i = 0; i < children.length; i++) {
+            numerateTree(children[i], gorn + (i + 1));
+        }
+    }
+}
 
 /*
     (TOP (SIMPX-NONE/nohead (VF-NONE/nohead (NX-ON (PPER-HD Es)))(LK-NONE (VXFIN-HD (VAFIN-HD ist)))(MF-NONE/nohead (NX-OA (ART-NONE eine)(ADJX-NONE (ADJA-HD schöne))(NN-HD Frau)))))
