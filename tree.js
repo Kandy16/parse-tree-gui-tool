@@ -1,4 +1,4 @@
-class Graph {
+class Tree {
     constructor(tree) {
         this.trees = [];
         this.trees.push(tree);
@@ -6,7 +6,6 @@ class Graph {
         this.redo_history = [];
         this.active_history = this.history;
     }
-
 
     findNode(nodeId) {
         let nodeStrPath = nodeId.split('');
@@ -32,7 +31,6 @@ class Graph {
         node.gf = label;
         this.active_history.push([this.setEdgeLabel, this, [nodeId, old_label]]);
     }
-
 
     addEdge(parentId, childId, label = undefined) {
         let parent = findNode(parentId);
@@ -147,6 +145,8 @@ class Graph {
             let node = parent.children.splice(node_index, 1)[0];
             let node_label = node.label;
             this.active_history.push([this.addNodeAt, this, [parent.id.toString(), node_label, node_index]])
+        } else{
+            console.log('may the node is not found yet')
         }
     }
 
@@ -165,8 +165,14 @@ class Graph {
             Reflect.apply.apply(null, operation);
         }
     }
-
-
+    
+    hasNodeLeft(nodeId){
+        return Math.random() > 0.5;
+    }
+    
+    hasNodeRight(nodeId){
+        return Math.random() > 0.5;
+    }
 }
 
 /*
