@@ -65,11 +65,11 @@ class Tree {
     }
 
     removeEdge(parentId, childId) {
-        if (childId.indexOf(parentId) !== -1) {
+        if (parentId.indexOf(childId) !== -1) {
             console.error(`Wrong parent id: ${parentId} and child id: ${childId}`);
             return;
         }
-        let parent = findNode(parentId)[0];
+        let parent = this.findNode(parentId)[0];
         let childDigitsPath = childId.split('').map(Number);
         let childIndex = childDigitsPath.pop() - 1;
         let child = parent.children.splice(childIndex, 1)[0];

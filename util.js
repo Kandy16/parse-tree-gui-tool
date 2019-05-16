@@ -58,7 +58,7 @@ function catch_enter(event, function_on_event) {
 }
 
 var logSection = document.querySelector('#log');
-/*
+
 ['log','warn','error'].forEach(function (verb) {
     console[verb] = (function (method, verb, logSection) {
         return function (text) {
@@ -75,4 +75,3 @@ var logSection = document.querySelector('#log');
 console.log("Info message");
 console.warn("Warning message");
 console.error("Error message");
-*/

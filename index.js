@@ -447,7 +447,7 @@ var removeEdgeClickFunc = function(){
     // the event bubbles up and calls the click event handlers of the element. This needs to be stopped.
     event.stopImmediatePropagation();
     if (selectedEdgeIndex != undefined) {        
-        //treeObj.removeNode(selectedEdgeIndex);
+        treeObj.removeEdge(selectedEdgeIndex.v, selectedEdgeIndex.w); 
         setTimeout(drawTree(treeObj), 1000);
     } else{
         console.log('Select the edge first !!!');
