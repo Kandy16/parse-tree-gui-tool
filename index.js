@@ -1,336 +1,49 @@
-var bodyElem = d3.select('body'),
+/*var bodyElem = d3.select('body'),
     jsElem = d3.select('#js'),
     jsPanel = bodyElem.append('div').attr('id', 'jsPanel');
 cssElem = d3.select('#css'),
     cssPanel = bodyElem.append('div').attr('id', 'cssPanel');
+*/
 
-function setupPanel(panel, elem, title) {
-    panel.append('h2').text(title);
-    return panel.append('pre').append('code').text(elem.html().trim());
-}
-
-function renderGraphics() {
-    render(d3.select("svg g"), g);
-}
-
-var graph = undefined;
-
-var g = undefined;
+var treeObj = undefined;
+var graphLibObj = undefined;
 var render = undefined;
-var selectedNodeIdentifier = undefined;
-var selectedItem = undefined;
-
-
-var selectNodeFunc = function (itemIndex, parentIndex, others) {
-
-    if (selectedItem != undefined) {
-        selectedItem.classed('selecting', false);
-        console.log('Previous node:', selectedItem);
-        selectedDOMElement = selectedItem['_groups'][0][0];
-        console.log(selectedDOMElement.lastChild);
-        console.log(selectedDOMElement.removeChild);
-        selectedDOMElement.removeChild(selectedDOMElement.lastChild);
-    }
-
-    console.log('Selected Node index:', itemIndex);
-    //console.log('Parent Node Index:',parentIndex);
-    //console.log('Others:',others);
-
-    selectedNodeIdentifier = itemIndex;
-    selectedItem = d3.select(this);
-    console.log(selectedItem);
-    console.log(selectedItem['_groups'][0][0].parentElement);
-    selectedItem = d3.select(selectedItem['_groups'][0][0].parentElement);
-    console.log(selectedItem);
-    selectedItem.classed('selecting', true);
-    settingsGroupButtonsAddFunc()
-};
-
-
-var deselectNodeFunc = function (itemIndex) {
-    /*console.log('De-Selected Item index:', itemIndex);
-    selectedIdentifier = undefined;
-    selectedItem = undefined;
-    d3.select(this).classed('showing', false);*/
-};
-
-
-var doubleClickNodeFunc = function (itemIndex) {
-    console.log('Double clicked Node index:', itemIndex);
-    console.log(g.node(itemIndex))
-};
-
-var addNodeClickFunc = function () {
-    console.log('Add node clicked');
-    if (selectedNodeIdentifier != undefined) {
-        nodesCount = g.nodeCount();
-        nodesCount += 1;
-        nodeString = nodesCount.toString();
-        g.setNode(nodesCount, {
-            label: 'node' + nodeString,
-            class: 'type-' + nodeString
-        });
-        edgesCount = g.edgeCount();
-        edgesCount += 1;
-        g.setEdge(selectedNodeIdentifier, nodesCount, {
-            label: edgesCount.toString(),
-            class: 'type-' + selectedNodeIdentifier + '_' + nodeString
-        });
-        //g.setEdge(2, 3, {label:'hi', class:'type-2_3'});
-
-        renderGraphics();
-        updateGraphSize();
-
-        var svg = d3.select('svg');
-        var gNode = svg.select('g');
-
-        var newCreatedItem = gNode.select('.type-' + nodeString);
-        newCreatedItem.on('click', selectNodeFunc);
-        newCreatedItem.on('blur', deselectNodeFunc);
-        newCreatedItem.on('dblclick', doubleClickNodeFunc);
-
-        var newCreatedEdge = gNode.select('.type-' + selectedNodeIdentifier + '_' + nodeString);
-        newCreatedEdge.on('focus', selectEdgeFunc);
-
-        //console.log(newCreatedItem);
-        //console.log(newCreatedItem.node());
-        //newCreatedItem.node().focus();
-
-        //console.log(newCreatedEdge);
-        //console.log(newCreatedEdge.node())
-
-    }
-};
-$("input[name='addnode']").click(addNodeClickFunc);
-
-var removeNodeClickFunc = function () {
-    console.log('Remove node clicked');
-    if (selectedNodeIdentifier != undefined) {
-        successorsList = g.successors(selectedNodeIdentifier);
-        predecessorsList = g.predecessors(selectedNodeIdentifier);
-
-        console.log(predecessorsList);
-        console.log(successorsList);
-
-        i = 0;
-        while (i < successorsList.length) {
-            tempList = g.successors(successorsList[i]);
-            i = i + 1;
-
-            length = successorsList.length;
-            for (j in tempList) {
-                successorsList[length] = tempList[j];
-                length = length + 1
-            }
-        }
-        successorsList[length] = selectedNodeIdentifier;
-        console.log(successorsList);
-
-        for (i in successorsList) {
-            g.removeNode(successorsList[i])
-        }
-
-        renderGraphics();
-        updateGraphSize();
-
-        selectedNodeIdentifier = undefined;
-        selectedItem = undefined;
-
-        var svg = d3.select('svg');
-        var gNode = svg.select('g');
-
-        if (predecessorsList.length > 0) {
-            temp = predecessorsList[0];
-            tempItem = gNode.select('.type-' + temp)
-        }
-        if (tempItem != undefined) {
-            console.log(tempItem);
-            //console.log(tempItem.node());
-            //tempItem.node().focus()
-        }
-    }
-};
-
-$("input[name='removenode']").click(removeNodeClickFunc);
-
-var editNodeClickFunc = function () {
-    console.log('Edit button clicked!!')
-};
-
-var moveLeftClickFunc = function () {
-    console.log('move left clicked');
-    if (selectedNodeIdentifier != undefined) {
-        console.log('There are nodes');
-        predecessors = g.predecessors(selectedNodeIdentifier);
-        if (predecessors.length > 0) {
-            console.log('there are predecessors');
-            parent = predecessors[0];
-            siblings = g.successors(parent);
-            if (siblings.length > 0) {
-                console.log('there are siblings');
-                if (selectedNodeIdentifier != siblings[0]) {
-                    console.log(selectedNodeIdentifier, siblings[0]);
-
-                    neighborList = [];
-                    neighborLabelList = [];
-                    selectedIndex = siblings.indexOf(selectedNodeIdentifier);
-                    console.log('Index of selected item:', selectedIndex);
-
-                    console.log(siblings);
-                    //swap current and previous
-                    temp = siblings[selectedIndex];
-                    siblings[selectedIndex] = siblings[selectedIndex - 1];
-                    siblings[selectedIndex - 1] = temp;
-
-                    console.log(parent);
-                    console.log(siblings);
-
-                    siblingLabels = [];
-                    for (i = 0; i < siblings.length; i++) {
-                        sibling = siblings[i];
-
-                        tmpLabel = g.edge(parent, sibling)['label'];
-                        siblingLabels[i] = tmpLabel;
-
-                        console.log(sibling, tmpLabel);
-                        g.removeEdge(parent, sibling)
-
-                    }
-
-                    setTimeout(renderGraphics, 1);
-                    setTimeout(updateGraphSize, 1);
-
-                    var updateFunction = function (i) {
-
-                        return function () {
-                            console.log('Update function executing after few ms');
-                            console.log(siblings);
-                            //for (i=0;i<siblings.length;i++){
-                            sibling = siblings[i];
-                            siblingLabel = siblingLabels[i];
-                            console.log(sibling, siblingLabel);
-                            g.setEdge(parent, sibling, {
-                                'label': i.toString(),
-                                'class': 'type-' + parent + '_' + sibling + ' extra'
-                            });
-                            //break;
-                            //}
-
-                            renderGraphics();
-                            updateGraphSize();
-                        }
-                    };
-                    setTimeout(updateFunction(0), 1000 + i * 2000);
-                    setTimeout(updateFunction(2), 1000 + i * 2000);
-                    setTimeout(updateFunction(1), 1000 + i * 2000);
-                    for (i = 0; i < siblings.length; i++) {
-                        //setTimeout(updateFunction(i), 1000+i*1000)
-                    }
-
-                } else {
-                    console.log('It is at left extreme!!!')
-                }
-            } else {
-                console.log('No siblings!!!')
-            }
-        } else {
-            console.log('No parents!!!')
-        }
-    } else {
-        console.log('No nodes selected !!!')
-    }
-};
-
-$("input[name='left']").click(moveLeftClickFunc);
-
-var moveRightClickFunc = moveLeftClickFunc;
-$("input[name='right']").click(moveRightClickFunc);
-
-var selectedEdgeIdentifier = undefined;
-var selectedEdge = undefined;
-var recipientNodeIdentifier = undefined;
-var selectEdgeFunc = function (edgeIndex) {
-    console.log('Selected edge index:', edgeIndex);
-    selectedEdgeIdentifier = edgeIndex;
-    selectedEdge = d3.select(this);
-    selectedEdge.classed('showing', true);
-};
-
-$("input[name='selectrecipientnode']").click(function () {
-    console.log('select recipient node clicked');
-    if (selectedNodeIdentifier != undefined) {
-
-        recipientNodeIdentifier = selectedNodeIdentifier
-
-    }
-});
-
-$("input[name='addedge']").click(function () {
-    console.log('Add edge clicked');
-    if (recipientNodeIdentifier != undefined & selectedNodeIdentifier != undefined) {
-        edgesCount += 1;
-        g.setEdge(selectedNodeIdentifier, recipientNodeIdentifier, {
-            label: edgesCount.toString(),
-            class: 'type-' + selectedNodeIdentifier + '_' + recipientNodeIdentifier
-        });
-
-        renderGraphics();
-        updateGraphSize();
-
-        var newCreatedEdge = gNode.select('.type-' + selectedNodeIdentifier + '_' + recipientNodeIdentifier);
-        newCreatedEdge.on('focus', selectEdgeFunc);
-
-        recipientNodeIdentifier = undefined
-
-
-    }
-});
-
-$("input[name='removeedge']").click(function () {
-    console.log('Remove edge clicked');
-    if (selectedEdgeIdentifier != undefined) {
-
-        g.removeEdge(selectedEdgeIdentifier['v'], selectedEdgeIdentifier['w']);
-
-        renderGraphics();
-        updateGraphSize();
-
-        selectedEdgeIdentifier = undefined
-        //selectedEdge = undefined
-
-    }
-});
 
 var loadTreeFunc = function () {
+     
     const parse_str = document.querySelector("#input").value.trim().replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/g, ' ');
     if (parse_str.startsWith('(') && parse_str.endsWith(')')) {
-        const tree = parseBrackets(parse_str);
+        const treeDS = parseBrackets(parse_str);
+        treeObj = new Tree(treeDS);
+        if (treeObj) {
 
-        if (tree) {
-            graph = new Graph(tree);
-            graph.addNode('111211', 'first_added_node');
-            graph.undo();
-            graph.redo();
-            // graph.rightShift('1133');
-            graph.leftShift('1132');
+            drawTree(treeObj);
 
-            var parentDiv = document.querySelector("div#parses");
-            removeAllChildren(parentDiv);
-            parentDiv.appendChild(create_graph_div(tree));
-            // const svg = div.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "svg"));
-            const svg = d3.select("svg");
-            svg.selectAll("*").remove();
-            drawTree(tree, svg);
+            // the following code needs to be removed. 
+            // Rather than mapping events to the whole node DOM, two entities of node DOM are only mapped to avoid event bubbling
+            // There was a conflict between select node event and add,delete, edit etc button event. Whenever the later was performed, the
+            // former was invoked and causing issues.
+            
+            //right now, event propagation is stopped and also event can be mapped to whole node DOM
+            
+            /*
+            console.log('All Nodes:');
+            console.log(allNodes);
+            for (i in allNodes._groups[0]){
+                temp = allNodes._groups[0][i];
+                addActionButtonsOnNode(temp);
+            }
 
-            var allNodes = svg.selectAll('g.node>rect');
-            console.log('All Nodes:', allNodes);
-            var result = allNodes.on('click', selectNodeFunc);
+            var allNodesRect = svg.selectAll('g.node>rect');
+            console.log('All Nodes Rect:', allNodesRect);
+            var result = allNodesRect.on('click', selectNodeFunc);
             console.log(result);
 
-            var allNodeLabels = svg.selectAll('g.node>g');
+            var allNodeLabels = svg.selectAll('g.node>g.label');
             console.log('All Node Labels:', allNodeLabels);
             var result = allNodeLabels.on('click', selectNodeFunc);
-            console.log(result)
+            console.log(result);
+            */
 
             //allNodes.on('blur', deselectNodeFunc);
             //allNodes.on('dblclick', doubleClickNodeFunc);
@@ -339,49 +52,32 @@ var loadTreeFunc = function () {
         }
     }
 };
+$('#loadtree').click(loadTreeFunc);
 
-$("input[name='loadtree']").click(loadTreeFunc);
+function drawTree(treeObj) {
+    console.log('drawTree is executing !!!');
+    
+    // Cleaning all resources
+    clearNodeVariables();
+    clearEdgeVariables();
 
-// $("input[name='savetree']").click(function () {
-//     console.log('Save tree clicked');
-//     console.log(dagreD3.graphlib.json.write(g));
-//     console.log(g.toJson())
-//
-// });
+    var parentDiv = document.querySelector("div#parses");
+    removeAllChildren(parentDiv);
+    removeGraphLibNodes();
 
-var settingsGroupButtonsAddFunc = function (args) {
-    var addNode = "<g class='addGroup'><g><image xlink:href='lib/open-iconic-master/png/plus-4x.png' x='0' y='20' height='20' width='20'></image> <rect class='btn' onclick='addNodeClickFunc()' x='0' y='20' width='20' height='20'/></g></g>";
-
-    var deleteNode = "<g><image xlink:href='lib/open-iconic-master/png/delete-4x.png' x='30' y='20' height='20' width='20'></image> <rect class='btn' onclick='removeNodeClickFunc()' x='30' y='20' width='20' height='20'/></g>";
-
-    var editNode = "<g><image xlink:href='lib/open-iconic-master/png/wrench-4x.png' x='60' y='20' height='20' width='20'></image> <rect class='btn' onclick='editNodeClickFunc()' x='60' y='20' width='20' height='20'/></g>";
-
-    var moveLeftNode = "<g><image xlink:href='lib/open-iconic-master/png/caret-left-4x.png' x='90' y='20' height='20' width='20'></image> <rect class='btn' onclick='moveLeftClickFunc()' x='90' y='20' width='20' height='20'/></g>";
-
-    var moveRightNode = "<g><image xlink:href='lib/open-iconic-master/png/caret-right-4x.png' x='120' y='20' height='20' width='20'></image> <rect class='btn' onclick='moveRightClickFunc()' x='120' y='20' width='20' height='20'/></g>";
-
-    //console.log(args);
-    if (selectedItem != undefined) {
-        console.log(selectedItem);
-        console.log(selectedItem['_groups'][0][0].innerHTML);
-
-        var selectGNode = selectedItem['_groups'][0][0];
-        var parentGNode = selectGNode.parentElement;
-        console.log(parentGNode);
-        elements = "<g class='settingsGroup'>" + addNode + deleteNode + editNode +
-            moveLeftNode + moveRightNode + "</g>";
-        selectGNode.innerHTML = selectGNode.innerHTML + elements;
+    // Display the status - Not sure why is it useful :-)
+    parentDiv.appendChild(create_graph_div(treeObj.trees[0]));
+    
+    // Build a new graph from scratch
+    for (i in treeObj.trees){
+        build_graphLibObj(treeObj.trees[i]);//build_graphLibObj(treeObj.trees[i], i+1);
     }
-};
 
-$("input[name='experiment']").click(settingsGroupButtonsAddFunc);
-
-
-function updateGraphSize() {
-    const svg = d3.select("svg");
-    var xCenterOffset = (svg.attr("width") - g.graph().width) / 2;
-    svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
-    svg.attr("height", g.graph().height + 40);
+    // Render the graph usng D3. This will use the SVG and add all elements
+    renderGraphics();
+    
+    // Adds events such as select, add buttons to each and every node and edge
+    linkTreeEvents();
 }
 
 //creates a new div for a new parse
@@ -393,65 +89,378 @@ function create_graph_div(tree) {
     return div;
 }
 
-// visualize parse tree using dagre-d3
-function build_graph(graph, tree, startindex = 1) {
-    let label = tree.label;
-    if (tree.morph) {
-        label += '-' + tree.morph
-    }
-    const graph_node = {label: label,};
-    if (tree.class) {
-        graph_node.class = tree.class.join(' ');
-    }
-    graph.setNode(startindex, graph_node);
-    let child_index = startindex * 10;
-    let children = tree.children;
-    if (children) {
-        for (let i in children) {
-            let child = children[i];
-            build_graph(graph, child, child_index);
-            const child_edge = {};
-            if (child.gf) {
-                child_edge.label = child.gf;
-            }
-            graph.setEdge(startindex, child_index, child_edge);
-            child_index += 1;
+var removeGraphLibNodes = function(){
+    if(graphLibObj != undefined){
+        //Enumerate all the nodes and remove one by one - which inturn will remove the edges
+        nodes = graphLibObj.nodes();
+        for (i in nodes){
+            graphLibObj.removeNode(nodes[i]);
         }
     }
 }
 
-// use dagre and d3 to draw a tree on the svg_elem
-function drawTree(tree, svg) {
+function build_graphLibObj(tree) {
     // Create the input graph
     // Available options: https://github.com/dagrejs/dagre/wiki
-    g = new dagreD3.graphlib.Graph()
+    if(graphLibObj == undefined){
+        graphLibObj = new dagreD3.graphlib.Graph()
         .setGraph({nodesep: 30, ranksep: 30})
-        //      .setGraph({})
         .setDefaultEdgeLabel(function () {
             return {};
         });
+    }
+    
+    // Create the node with label and class
+    //the label of the node (which is displayed)
+    let label = tree.label;
+    if (treeObj.morph) {
+        label += '-' + tree.morph;
+    }
+    const graph_node = {label: label,};
+    
+    // Class will be used to pin-point a specific node in the graph by using DOM elements
+    
+    if (treeObj.class) {
+        graph_node.class = tree.class.join(' ');
+    }
+    // The ids start from 1 and goes on with 11,12,13 - to represent its three children and 111,112,113 to represent their children
+    // The tree nodes contain the id within itself
+    graphLibObj.setNode(tree.id, graph_node);
 
-    build_graph(g, tree);
-
-    g.nodes().forEach(function (v) {
-        let node = g.node(v);
-        // Round the corners of the nodes
+    //Enumerate the children one by one. Build the node for each
+    // Create an edge between them and use the respective label
+    let children = tree.children;
+    if (children) {
+        for (let i in children) {
+            let child = children[i];
+            build_graphLibObj(child);
+            const child_edge = {};
+            if (child.gf) {
+                child_edge.label = child.gf;
+            }
+            graphLibObj.setEdge(tree.id, child.id, child_edge);
+        }
+    }
+    
+    // Round the corners of the nodes
+    graphLibObj.nodes().forEach(function (v) {
+        let node = graphLibObj.node(v);
         node.rx = node.ry = 5;
     });
-
-    // Create the renderer
-    render = new dagreD3.render();
-
-    // Set up an SVG group so that we can translate the final graph.
-    // const svg = d3.select(svg_elem),
-    svgGroup = svg.append("g");
-
-    // Run the renderer. This is what draws the final graph.
-    render(d3.select("svg g"), g);
-
-    svg.attr("width", g.graph().width + 40);
-    // Center the graph
-    const xCenterOffset = (svg.attr("width") - g.graph().width) / 2;
-    svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
-    svg.attr("height", g.graph().height + 40);
 }
+
+var addActionButtonsOnNode = function (argNode) {
+    
+    //DOM Structure
+    //Array of controls
+    //--Addition button
+    //--Deletion button
+    //--Edit button
+    //--Move left button
+    //--Move right button
+
+    //Every button is represented as :
+    // g tag is used to group the controls
+    //--image tag helps to load raster graphics (images) inside SVG
+    //--rect tag is used to make the image clickable (But the co-ordinates has to be as same as image)
+    
+    //Both addition and deletion nodes are shown to the left of the node and the rest to the right
+    var addNode = "<g class='add'><image xlink:href='lib/open-iconic-master/png/plus-4x.png' x='-60' y='20' height='20' width='20'></image> <rect class='btn' onclick='addNodeClickFunc()' x='-60' y='20' width='20' height='20'/></g>";
+    var deleteNode = "<g class='delete'><image xlink:href='lib/open-iconic-master/png/delete-4x.png' x='-30' y='20' height='20' width='20'></image> <rect class='btn' onclick='removeNodeClickFunc()' x='-30' y='20' width='20' height='20'/></g>";
+
+    var editNode = "<g class='edit'><image xlink:href='lib/open-iconic-master/png/wrench-4x.png' x='20' y='20' height='20' width='20'></image> <rect class='btn' onclick='editNodeClickFunc()' x='20' y='20' width='20' height='20'/></g>";
+    var moveLeftNode = "<g class='left'><image xlink:href='lib/open-iconic-master/png/caret-left-4x.png' x='50' y='20' height='20' width='20'></image> <rect class='btn' onclick='moveLeftClickFunc()' x='50' y='20' width='20' height='20'/></g>";
+    var moveRightNode = "<g class='right'><image xlink:href='lib/open-iconic-master/png/caret-right-4x.png' x='80' y='20' height='20' width='20'></image> <rect class='btn' onclick='moveRightClickFunc()' x='80' y='20' width='20' height='20'/></g>";
+
+    if (argNode != undefined) {
+        elements = "<g class='settingsGroup' visibility='hidden'>" + addNode + deleteNode + editNode +
+                    moveLeftNode + moveRightNode + "</g>";
+        // For some reasons adding elements using DOM APIs was not reflecting. Not sure why? and hence resolved to innerHTML
+        argNode.innerHTML = argNode.innerHTML + elements;
+    }
+};
+
+var addActionButtonsOnEdge = function (argEdge) {
+    
+    //DOM Structure
+    //Array of controls
+    //--Deletion button
+    //--Edit button
+    
+    //Every button is represented as :
+    // g tag is used to group the controls
+    //--image tag helps to load raster graphics (images) inside SVG
+    //--rect tag is used to make the image clickable
+    
+    // It is important to draw those buttons near to where the edge is. Figuring out where the edge is drawn is messy.
+    // A line is drawn using Path element which is the first child of Edge. It has the following attribute.
+    //d="M96.625,378L96.625,393L96.625,408"
+    // M - represents a marker and L represent point co-ordinates for drawlines (2 L's to have 2 point co-ordinates to draw a line)
+    
+    //Need to do experiments more - to figure out whether it is robust enough when complex edges are drawn (with multiple lines)
+    var lineCoordinates = argEdge.firstElementChild.getAttribute('d');
+    var arrowStartIndex = lineCoordinates.indexOf('L') + 1; //0
+    var arrowEndIndex = lineCoordinates.lastIndexOf('L'); //0
+    var arrowPoint = lineCoordinates.substring(arrowStartIndex, arrowEndIndex); //Result - 96.625,393
+    //console.log('Arrow Point : ',arrowPoint, lineCoordinates);
+    //var xArrowIndex = arrowPoint.indexOf(',');
+    //var xArrowPoint = arrowPoint.substring(0,xArrowIndex);
+    //var yArrowPoint = arrowPoint.substring(xArrowIndex+1,arrowPoint.length);
+    //console.log('X,Y Arrow Point : ',xArrowPoint, yArrowPoint);
+    
+    //delete node to the left and edit node to the right
+    var deleteEdge = "<g class='delete'><image xlink:href='lib/open-iconic-master/png/delete-4x.png' x='-30' y='0' height='20' width='20'></image> <rect class='btn' onclick='removeEdgeClickFunc()' x='-30' y='0' width='20' height='20'/></g>";
+
+    var editEdge = "<g class='edit'><image xlink:href='lib/open-iconic-master/png/wrench-4x.png' x='30' y='0' height='20' width='20'></image> <rect class='btn' onclick='editEdgeClickFunc()' x='30' y='0' width='20' height='20'/></g>";
+
+    if (argEdge != undefined) {
+        elements = "<g class='settingsGroup' transform='translate("+arrowPoint+")' visibility='hidden'>" + deleteEdge + editEdge + "</g>";
+        // For some reasons adding elements using DOM APIs was not reflecting. Not sure why? and hence resolved to innerHTML
+        argEdge.innerHTML = argEdge.innerHTML + elements;
+    }
+};
+
+function renderGraphics() {
+    // Create render if not available
+    if (render == undefined){
+        render = new dagreD3.render();
+    }
+    
+    // Remove everything from svg element first
+    const svg = d3.select("svg");
+    svg.selectAll("*").remove();
+    svgGroup = svg.append("g");
+    
+    // Render
+    render(d3.select("svg g"), graphLibObj);
+    
+    //Give enough width for svg to accomodate the whole graph
+    svg.attr("width", graphLibObj.graph().width + 200);
+    
+    // Center the graph
+    const xCenterOffset = (svg.attr("width") - graphLibObj.graph().width) / 2;
+    svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
+    svg.attr("height", graphLibObj.graph().height + 100);
+}
+
+var linkTreeEvents = function(){
+    
+    // Assign all the nodes with click event - this is set the global variables with node index and do some UI gimmicks for selection :-)
+    const svg = d3.select("svg");
+    
+    // For nodes
+    var allNodes = svg.selectAll('g.node');
+    var result = allNodes.on('click', selectNodeFunc);
+
+    // D3's selectAll output is wierd. Have to access the elements using this property. It contains the indexes as number strings '1', '2' etc.
+    // In addition to that it contains other properties such as 'length'. These should not be used and hence the check for NaN property.
+    
+    for (i in allNodes._groups[0]){
+        if(!isNaN(i)){ 
+            temp = allNodes._groups[0][i];
+            addActionButtonsOnNode(temp);
+        }
+    }
+    
+    // For edges
+    var allEdges = svg.selectAll('g.edgePath');
+    var result = allEdges.on('click', selectEdgeFunc);
+        
+    for (i in allEdges._groups[0]){
+        if(!isNaN(i)){
+            temp = allEdges._groups[0][i];
+            addActionButtonsOnEdge(temp);
+        }
+    }
+    
+};
+
+var selectedNodeIndex = undefined;
+var selectedNode = undefined;
+
+var clearNodeVariables = function(){
+    
+    if (selectedNodeIndex != undefined) {
+        // the previous selected node needs to be de-selected 
+        // and the controls respective to it should be hidden
+        selectedNode.classList.remove('selected');
+        //selectedNode.lastElementChild.style.display='none';
+        //selectedNode.lastElementChild.setAttribute('enabled', true);
+        var buttonsGroupElement = selectedNode.lastElementChild;
+        buttonsGroupElement.querySelector('.left').setAttribute('visibility','hidden');
+        buttonsGroupElement.querySelector('.right').setAttribute('visibility','hidden');
+        buttonsGroupElement.setAttribute('visibility', 'hidden');
+
+    }
+    
+    selectedNodeIndex = undefined;
+    selectedNode = undefined;
+};
+
+var selectNodeFunc = function (nodeIndex) {
+    
+    // It is important to clear both node and edge variables
+    
+    clearNodeVariables();
+    clearEdgeVariables();
+    
+    // Save the node Index and the element
+    selectedNodeIndex = nodeIndex;
+    console.log('Selected Node index :',selectedNodeIndex);
+    selectedNode = this;
+
+    // selected class will show the node with blue colour overlay
+    selectedNode.classList.add('selected');
+    
+
+    // display the array of controls associated with it
+
+    // DOM structure
+    //Node
+    //--Rect
+    //--Label
+    //--Array of controls - this needs to be shown
+    
+    
+    var buttonsGroupElement = selectedNode.lastElementChild;
+    //Using setAttribute because the cross browerser support is high
+    buttonsGroupElement.setAttribute('visibility', 'visible');
+    //selectedNode.lastElementChild.style.display='block';
+    
+    // the move left and right buttons need to be shown only based on the positioning of element in the tree.
+    // If it is to the extreme left then move left can be made invisible and so on.
+
+    leftNodeVisible = treeObj.hasNodeLeft(selectedNodeIndex)? 'visible':'hidden';
+    rightNodeVisible = treeObj.hasNodeRight(selectedNodeIndex)? 'visible':'hidden';
+    buttonsGroupElement.querySelector('.left').setAttribute('visibility',leftNodeVisible);
+    buttonsGroupElement.querySelector('.right').setAttribute('visibility',rightNodeVisible);
+    //buttonsGroupElement.querySelector('.left').style.display='none';
+};
+
+var addNodeClickFunc = function () {
+    console.log('Add node clicked');
+    event.stopImmediatePropagation();
+    if (selectedNodeIndex != undefined) {
+        treeObj.addNode(selectedNodeIndex, 'node');   
+        setTimeout(drawTree(treeObj), 1000);
+    } else{
+        console.log('Select the node first !!!');
+    }
+};
+var removeNodeClickFunc = function () {
+    console.log('Remove node clicked');
+    event.stopImmediatePropagation();
+    if (selectedNodeIndex != undefined) {        
+        treeObj.removeNode(selectedNodeIndex);
+        setTimeout(drawTree(treeObj), 1000);
+    } else{
+        console.log('Select the node first !!!');
+    }
+};
+var editNodeClickFunc = function () {
+    console.log('Edit button clicked!!');
+    event.stopImmediatePropagation();
+    if (selectedNodeIndex != undefined) {        
+        //treeObj.removeNode(selectedNodeIndex);
+        setTimeout(drawTree(treeObj), 1000);
+    } else{
+        console.log('Select the node first !!!');
+    }
+};
+
+var moveLeftClickFunc = function () {
+    console.log('Move left clicked');
+    event.stopImmediatePropagation();
+    if (selectedNodeIndex != undefined) {
+        //treeObj.leftShift(selectedNodeIndex);
+        setTimeout(drawTree(treeObj), 1000);
+    } else{
+        console.log('Select the node first !!!');
+    }
+};
+var moveRightClickFunc = function(){
+    console.log('Move right clicked');
+    event.stopImmediatePropagation();
+    if (selectedNodeIndex != undefined) {
+        //treeObj.rightShift(selectedNodeIndex);
+        setTimeout(drawTree(treeObj), 1000);
+    } else{
+        console.log('Select the node first !!!');
+    }
+};
+
+var selectedEdgeIndex = undefined;
+var selectedEdge = undefined;
+var recipientNodeIdentifier = undefined;
+
+var clearEdgeVariables = function(){
+    if (selectedEdgeIndex != undefined) {
+        // the previous selected node needs to be de-selected 
+        // and the controls respective to it should be hidden
+        selectedEdge.classList.remove('selected');
+        //selectedNode.lastElementChild.style.display='none';
+        //selectedNode.lastElementChild.setAttribute('enabled', true);
+        var buttonsGroupElement = selectedEdge.lastElementChild;
+        buttonsGroupElement.setAttribute('visibility', 'hidden');
+
+    }
+    selectedEdgeIndex = undefined;
+    selectedEdge = undefined;
+};
+
+var selectEdgeFunc = function (edgeIndex) {
+    
+    // It is important to clear both node and edge variables
+    
+    clearEdgeVariables();
+    clearNodeVariables();
+
+    // select both the edge index and element
+    selectedEdgeIndex = edgeIndex;
+    console.log('Selected Edge index :',selectedEdgeIndex);
+    selectedEdge = this;
+
+    // selected class will show the node with blue colour overlay
+    selectedEdge.classList.add('selected');
+    
+    // display the array of controls associated with it
+
+    // DOM structure
+    //Node
+    //--Rect
+    //--Label
+    //--Array of controls - this needs to be shown
+    
+    var buttonsGroupElement = selectedEdge.lastElementChild;
+    // Using setAttribute because it improves the cross browser support
+    buttonsGroupElement.setAttribute('visibility', 'visible');
+    //buttonsGroupElement.querySelector('.left').style.display='none';
+    //selectedNode.lastElementChild.style.display='block';
+
+};
+
+
+var removeEdgeClickFunc = function(){
+    console.log('Remove edge clicked');
+    // It is important to stop the event from bubbling up.
+    // Otherwise when the remove and edit edge buttons are clicked, once after their respective event handlers are executed,
+    // the event bubbles up and calls the click event handlers of the element. This needs to be stopped.
+    event.stopImmediatePropagation();
+    if (selectedEdgeIndex != undefined) {        
+        //treeObj.removeNode(selectedEdgeIndex);
+        setTimeout(drawTree(treeObj), 1000);
+    } else{
+        console.log('Select the edge first !!!');
+    }    
+};
+
+var editEdgeClickFunc = function(){
+    console.log('Edit edge clicked!!');
+    event.stopImmediatePropagation();
+    if (selectedEdgeIndex != undefined) {        
+        //treeObj.removeNode(selectedEdgeIndex);
+        setTimeout(drawTree(treeObj), 1000);
+    } else{
+        console.log('Select the edge first !!!');
+    }    
+};

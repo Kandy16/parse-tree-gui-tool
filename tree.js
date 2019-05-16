@@ -8,32 +8,40 @@ class Tree {
     }
 
     findNode(nodeId) {
-        let nodeStrPath = nodeId.split('');
-        let nodeDigitsPath = nodeStrPath.map(Number);
-        let treeId = nodeDigitsPath.shift() - 1;
-
-        let tree = this.trees[treeId];
-        let node = tree;
+        //nodeId will be like 1321...
+        // The first number will specify the tree and also the root node (It starts from 1)
+        //The subsequent number will specify the index of the childnode. (They also start from 1)
+        
+        let nodeStrPath = nodeId.split(''); //gives out an array of individual characters
+        let nodeDigitsPath = nodeStrPath.map(Number); //converts all the characters to numbers
+        let nodeIndex = nodeDigitsPath[nodeDigitsPath.length-1] - 1; // get the final child index
+        console.log('Inside findNode nodeindex - ',nodeIndex);
+        let treeId = nodeDigitsPath.shift() - 1; // Removes the left most digit. Subtract by 1 to get the treeId since nodeId starts from 1
+        let tree = this.trees[treeId]; 
+        let node = tree; 
         let i;
         while ((i = nodeDigitsPath.shift()) !== undefined) {
             if (i > node.children.length) {
                 console.log(`Path: ${nodeId} was not found`);
-                return;
+                return undefined,nodeIndex;
             }
-            node = node.children[i - 1];
+            node = node.children[i-1]; // here minus 1 refers to the index of childnode
+            //nodeIndex = i-1;
         }
-        return node
+        console.log(node);
+        return [node,nodeIndex];
     }
 
     setEdgeLabel(nodeId, label) {
-        let node = this.findNode(nodeId);
+        let node = this.findNode(nodeId)[0];
         let old_label = node.gf;
         node.gf = label;
+        
         this.active_history.push([this.setEdgeLabel, this, [nodeId, old_label]]);
     }
 
     addEdge(parentId, childId, label = undefined) {
-        let parent = findNode(parentId);
+        let parent = findNode(parentId)[0];
         let childDigitsPath = childId.split('').map(Number);
         let childTreeId = childDigitsPath.shift() - 1;
         let child = this.trees.splice(childTreeId, 1)[0];
@@ -61,7 +69,7 @@ class Tree {
             console.error(`Wrong parent id: ${parentId} and child id: ${childId}`);
             return;
         }
-        let parent = findNode(parentId);
+        let parent = findNode(parentId)[0];
         let childDigitsPath = childId.split('').map(Number);
         let childIndex = childDigitsPath.pop() - 1;
         let child = parent.children.splice(childIndex, 1)[0];
@@ -73,7 +81,7 @@ class Tree {
 
     leftShift(nodeId) {
         let nodeIndex = Number(nodeId.slice(-1)) - 1;
-        let parent = this.findNode(nodeId.slice(0,-1));
+        let parent = this.findNode(nodeId.slice(0,-1))[0];
         if (parent.children.length == 1) {
             console.warn(`Parent node: ${parent.label} contains only one child. Nothing is changed!`);
             return;
@@ -91,7 +99,7 @@ class Tree {
 
     rightShift(nodeId) {
         let nodeIndex = Number(nodeId.slice(-1)) - 1;
-        let parent = this.findNode(nodeId.slice(0,-1));
+        let parent = this.findNode(nodeId.slice(0,-1))[0];
         if (parent.children.length == 1) {
             console.warn(`Parent node: ${parent.label} contains only one child. Nothing is changed!`);
             return;
@@ -108,7 +116,10 @@ class Tree {
     }
 
     addNode(parentId, label) {
-        let node = this.findNode(parentId);
+        // Find the parent node and append the child
+        // Appending will not change the Ids. Id sanity is maintained.
+        let node = this.findNode(parentId)[0];
+        console.log(node);
         if (node !== undefined) {
             let addedNodeId = addNode(node, {label: label});
             this.active_history.push([this.removeNode, this, [addedNodeId.toString()]])
@@ -116,16 +127,33 @@ class Tree {
     }
 
     addNodeAt(parentId, label, index) {
-        let node = this.findNode(parentId);
+        let node = this.findNode(parentId)[0];
         if (node !== undefined) {
             let addedNodeId = insertNode(node, {label: label}, index);
-            this.active_history.push([this.removeNode, this, [addedNodeId.toString()]]);
+            
+            //this.active_history.push([this.removeNode, this, [addedNodeId.toString()]]);
         }
     }
 
     removeNode(nodeId) {
         console.log("removeNode called");
-        let nodeStrPath = nodeId.split('');
+        let result=  this.findNode(nodeId);
+        let node = result[0];
+        let node_index = result[1];
+        console.log(node);
+        if(node !== undefined){
+            let parent = node.parent;
+            let deletedNode = parent.children.splice(node_index, 1)[0];
+            let node_label = deletedNode.label;
+            
+            //It is important to change all ids to maintain sanity
+            this.changeAllIds();
+            //this.active_history.push([this.addNodeAt, this, [parent.id.toString(), node_label, node_index]])
+        } else{
+            console.log('may the node is not found yet');
+        }
+        
+        /*let nodeStrPath = nodeId.split('');
         let nodeDigitsPath = nodeStrPath.map(Number);
         let treeId = nodeDigitsPath.shift() - 1;
 
@@ -147,7 +175,7 @@ class Tree {
             this.active_history.push([this.addNodeAt, this, [parent.id.toString(), node_label, node_index]])
         } else{
             console.log('may the node is not found yet')
-        }
+        }*/
     }
 
     undo() {
@@ -173,68 +201,35 @@ class Tree {
     hasNodeRight(nodeId){
         return Math.random() > 0.5;
     }
-}
-
-/*
-    Takes a nonterminal in form 'PH-GF-MORPH' and returns an object
-    {
-        label: PH,
-        gf: GF,
-        morph: MORPH,
-    }
- */
-function parseNonterminal(ntstr) {
-    const ntarray = ntstr.trim().split('-');
-    if (ntarray.length === 0) {
-        console.log("Unable to parse node:", ntstr);
-        return null;
-    }
-    const node = {label: ntarray[0]};
-
-    if (ntarray.length >= 2) {
-        const gf = ntarray[1].trim();
-        if (gf !== 'NONE' && gf !== 'NONE/nohead') {
-            node.gf = gf;
+    
+    changeAllIds(){
+        function changeTreeIds(node, newId){
+            // Change the current node to new Id
+            node.id = newId;
+            // Enumerate through the children and set their Ids based on new Id
+            let children = node.children;
+            if (children) {
+                let childrenId  = newId*10 + 1;
+                for (let j in children) {
+                    let child = children[j];
+                    changeTreeIds(child, childrenId);
+                    childrenId = childrenId + 1;
+                }
+            }
         }
-    }
-
-    if (ntarray.length >= 3) {
-        const morph = ntarray[2].trim();
-        if (morph !== 'NONE') {
-            node.morph = morph;
+        
+        console.log(this.trees);
+        let treeId = 1;
+        // Enumerate the tree one by one and set their ids in incremental fashion
+        for(let i in this.trees){
+            let tree = this.trees[i];
+            changeTreeIds(tree, 1);
+            treeId = treeId + 1;
         }
+        console.log(this.trees);
     }
-    return node;
+
 }
-
-/*
-    Create an object from a preterminal in form 'VMFIN-3pis'
-    {
-        label: VMFIN,
-        morph: 3pis,
-    }
- */
-function parsePreterminal(ntstr) {
-    const ntarray = ntstr.trim().split('-');
-    if (ntarray.length === 0) {
-        console.log("Unable to parse node:", ntstr);
-        return null;
-    }
-    const node = {label: ntarray[0]};
-    if (ntarray.length == 2) {
-        const morph = ntarray[1].trim();
-        if (morph !== 'NONE') {
-            node.morph = morph;
-        }
-    }
-
-    if (ntarray.length > 2) {
-        console.warn("Unknown preterminal format: ", ntstr)
-    }
-
-    return node;
-}
-
 
 // append a new child to the parent and set backreference child.parent
 function addNode(parent, child, rootId = 1) {
@@ -274,20 +269,21 @@ function insertNode(parent, child, at = 0, rootId = 1) {
     return child.id;
 }
 
-// returns string representaiton of a node
-function node2str(node) {
-    let result = node.label;
-    if (node.gf) {
-        result += '-' + node.gf;
-    }
-    if (node.morph) {
-        result += '-' + node.morph;
-    }
-    return result;
-}
-
 // returns neat formatted string representation of a parse
 function parse2str(tree, level = 0) {
+    
+    // returns string representaiton of a node
+    function node2str(node) {
+        let result = node.label;
+        if (node.gf) {
+            result += '-' + node.gf;
+        }
+        if (node.morph) {
+            result += '-' + node.morph;
+        }
+        return result;
+    }
+    
     if (!tree) {
         return;
     }
@@ -325,6 +321,75 @@ function numerateTree(node, gorn = 0) {
     transforms parse string in bracketing format (as above) to an object
  */
 function parseBrackets(brackets) {
+    
+    /*
+    Takes a nonterminal in form 'PH-GF-MORPH' and returns an object
+    {
+        label: PH,
+        gf: GF,
+        morph: MORPH,
+    }
+ */
+    function parseNonterminal(ntstr) {
+        const ntarray = ntstr.trim().split('-');
+        if (ntarray.length === 0) {
+            console.log("Unable to parse node:", ntstr);
+            return null;
+        }
+        const node = {label: ntarray[0]};
+
+        if (ntarray.length >= 2) {
+            const gf = ntarray[1].trim();
+            if (gf !== 'NONE' && gf !== 'NONE/nohead') {
+                node.gf = gf;
+            }
+        }
+
+        if (ntarray.length >= 3) {
+            const morph = ntarray[2].trim();
+            if (morph !== 'NONE') {
+                node.morph = morph;
+            }
+        }
+        return node;
+    }
+
+    /*
+        Create an object from a preterminal in form 'VMFIN-3pis'
+        {
+            label: VMFIN,
+            morph: 3pis,
+        }
+     */
+    function parsePreterminal(ntstr) {
+        const ntarray = ntstr.trim().split('-');
+        if (ntarray.length === 0) {
+            console.log("Unable to parse node:", ntstr);
+            return null;
+        }
+        const node = {label: ntarray[0]};
+        if (ntarray.length == 2) {
+            const morph = ntarray[1].trim();
+            if (morph !== 'NONE') {
+                node.morph = morph;
+            }
+        }
+
+        if (ntarray.length > 2) {
+            console.warn("Unknown preterminal format: ", ntstr)
+        }
+
+        return node;
+    }
+    
+    //For this parser to work there should atleast a ROOT, a pre-terminal and terminal such as below
+    // (VROOT (a b)) - here VROOT is the root, a is the pre-terminal and b is the terminal
+    // Extending the simple example
+    // (VROOT (a (b c))) - here VROOT is the root, a is the non-terminal,b is the pre-terminal, 
+    // and c is the terminal
+    
+    // Iterate through the text, creates nodes and put them in hierarchy as per the 
+    // position of '(' and ')' paranthesis
     let unmatched_brackets = 0;
     let parentobj = null;
     let node = '';
@@ -334,9 +399,13 @@ function parseBrackets(brackets) {
         switch (ch) {
             case '(':
                 unmatched_brackets += 1;
+                //remove the spaces from both sides
                 node = node.trim();
+                // At the very first time this will be empty.
                 if (!isEmpty(node)) {
+                    // The extract content is a non-terminal since it does have children - (will be extracted using ')' paranthesis)
                     let nonterminal = parseNonterminal(node);
+                    // Add the extracted non-terminal under parentObj (which can be ROOT or other non-terminals)
                     addNode(parentobj, nonterminal);
                     parentobj = nonterminal;
                     node = '';
@@ -344,7 +413,10 @@ function parseBrackets(brackets) {
                 break;
             case ')':
                 unmatched_brackets -= 1;
+                //remove the spaces from both sides
                 node = node.trim();
+                // At the end of nodes with atleast one level of hierarchy - this will be empty.
+                // In that case choose the parent 
                 if (!isEmpty(node)) {
                     let termArray = node.split(/\s+/);
                     if (termArray.length > 1) {
@@ -360,11 +432,11 @@ function parseBrackets(brackets) {
                     }
                 }
                 break;
+                // Collect the content untill we encounter '(' or ')'
             default:
                 node += ch;
         }
     }
     console.assert(unmatched_brackets === 0);
-    // console.log(parentobj);
     return parentobj;
 }
