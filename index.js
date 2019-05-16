@@ -361,7 +361,7 @@ var editNodeClickFunc = function () {
     console.log('Edit button clicked!!');
     event.stopImmediatePropagation();
     if (selectedNodeIndex != undefined) {        
-        //treeObj.removeNode(selectedNodeIndex);
+        treeObj.setNodeLabel(selectedNodeIndex,'new_label');
         setTimeout(drawTree(treeObj), 1000);
     } else{
         console.log('Select the node first !!!');
@@ -372,7 +372,7 @@ var moveLeftClickFunc = function () {
     console.log('Move left clicked');
     event.stopImmediatePropagation();
     if (selectedNodeIndex != undefined) {
-        //treeObj.leftShift(selectedNodeIndex);
+        treeObj.leftShift(selectedNodeIndex);
         setTimeout(drawTree(treeObj), 1000);
     } else{
         console.log('Select the node first !!!');
@@ -382,7 +382,7 @@ var moveRightClickFunc = function(){
     console.log('Move right clicked');
     event.stopImmediatePropagation();
     if (selectedNodeIndex != undefined) {
-        //treeObj.rightShift(selectedNodeIndex);
+        treeObj.rightShift(selectedNodeIndex);
         setTimeout(drawTree(treeObj), 1000);
     } else{
         console.log('Select the node first !!!');
@@ -447,7 +447,7 @@ var removeEdgeClickFunc = function(){
     // the event bubbles up and calls the click event handlers of the element. This needs to be stopped.
     event.stopImmediatePropagation();
     if (selectedEdgeIndex != undefined) {        
-        treeObj.removeEdge(selectedEdgeIndex.v, selectedEdgeIndex.w); 
+        treeObj.removeEdge(selectedEdgeIndex['v'], selectedEdgeIndex['w']); 
         setTimeout(drawTree(treeObj), 1000);
     } else{
         console.log('Select the edge first !!!');
@@ -458,7 +458,7 @@ var editEdgeClickFunc = function(){
     console.log('Edit edge clicked!!');
     event.stopImmediatePropagation();
     if (selectedEdgeIndex != undefined) {        
-        //treeObj.removeNode(selectedEdgeIndex);
+        treeObj.setEdgeLabel(selectedEdgeIndex['w'],'new_label');
         setTimeout(drawTree(treeObj), 1000);
     } else{
         console.log('Select the edge first !!!');

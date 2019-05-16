@@ -10,172 +10,249 @@ class Tree {
     findNode(nodeId) {
         //nodeId will be like 1321...
         // The first number will specify the tree and also the root node (It starts from 1)
-        //The subsequent number will specify the index of the childnode. (They also start from 1)
+        //The subsequent number will specify the index of the childnode of rootnode. (They also start from 1)
         
         let nodeStrPath = nodeId.split(''); //gives out an array of individual characters
         let nodeDigitsPath = nodeStrPath.map(Number); //converts all the characters to numbers
-        let nodeIndex = nodeDigitsPath[nodeDigitsPath.length-1] - 1; // get the final child index
-        console.log('Inside findNode nodeindex - ',nodeIndex);
         let treeId = nodeDigitsPath.shift() - 1; // Removes the left most digit. Subtract by 1 to get the treeId since nodeId starts from 1
+        let indexList = [treeId]; // stores all the indexes. Starts with tree index
         let tree = this.trees[treeId]; 
         let node = tree; 
         let i;
         while ((i = nodeDigitsPath.shift()) !== undefined) {
             if (i > node.children.length) {
-                console.log(`Path: ${nodeId} was not found`);
-                return undefined,nodeIndex;
+                console.log('Path: ${nodeId} was not found');
+                return [undefined,[]];
             }
             node = node.children[i-1]; // here minus 1 refers to the index of childnode
-            //nodeIndex = i-1;
+            indexList.push(i-1);
         }
-        console.log(node);
-        return [node,nodeIndex];
+        return [node,indexList]; // the node element and index of the element with respect to parent
     }
 
     setEdgeLabel(nodeId, label) {
+        //find the  node
         let node = this.findNode(nodeId)[0];
+        if(node === undefined){
+            console.error('Node was not found!');
+            return;
+        }
         let old_label = node.gf;
         node.gf = label;
         
         this.active_history.push([this.setEdgeLabel, this, [nodeId, old_label]]);
     }
-
     addEdge(parentId, childId, label = undefined) {
-        let parent = findNode(parentId)[0];
-        let childDigitsPath = childId.split('').map(Number);
-        let childTreeId = childDigitsPath.shift() - 1;
-        let child = this.trees.splice(childTreeId, 1)[0];
-        if (childDigitsPath === undefined) {
-            console.error(`Node ${child.label} was not found!`);
-            return;
-        } else if (childDigitsPath.length != 0 || child.parent !== undefined) {
-            console.warn(`Node ${child.label} has already an incoming edge. Remove this edge first!`);
+        // find the parentNode
+        let parent = this.findNode(parentId)[0];
+        if(parent === undefined){
+            console.error('Source node was not found!');
             return;
         }
+        
+        //find the child node
+        let child = this.findNode(childId)[0];
+        if(child === undefined){
+            console.error('Target node was not found!');
+            return;
+        }
+        
+        //Check whether the child is the root node
+        if (childId.length != 1 || child.parent !== undefined) {
+            console.warn('Target node ${child.label} has already an incoming edge. Remove this edge first!');
+            return;
+        }
+        
+        // Remove the child tree from tree list and add it under parent node
+        let childIndex = parseInt(childId) - 1;
+        child = this.trees.splice(childTreeId, 1)[0];
         parent.children.push(child);
         child.parent = parent;
         if (label !== undefined) {
             child.gf = label;
         }
-        let parentDigitsPath = parentId.split('').map(Number);
-        let parentTreeId = childDigitsPath.shift() - 1;
-        let parentTree = this.trees[parentTreeId];
-        numerateTree(parentTree, parentTreeId + 1);
+        
+        // it is good numerate everything from scratch. 
+        // Otherwise get the index of parent and child tree and take the least value
+        numerateTrees();
         // TODO: add history here
     }
-
     removeEdge(parentId, childId) {
         if (parentId.indexOf(childId) !== -1) {
-            console.error(`Wrong parent id: ${parentId} and child id: ${childId}`);
+            console.error('Wrong parent id: ${parentId} and child id: ${childId}');
             return;
         }
+        
+         // find the parentNode
         let parent = this.findNode(parentId)[0];
-        let childDigitsPath = childId.split('').map(Number);
-        let childIndex = childDigitsPath.pop() - 1;
-        let child = parent.children.splice(childIndex, 1)[0];
+        if(parent === undefined){
+            console.error('Source node was not found!');
+            return;
+        }
+        
+        //find the child node
+        let result = this.findNode(childId);
+        let child = result.shift();
+        if(child === undefined){
+            console.error('Target node was not found!');
+            return;
+        }
+        
+        let nodeIndex = result.shift().slice(-1)[0];
+        // Remove the child from parent list and add it to tree list
+        child = parent.children.splice(nodeIndex, 1)[0];
         child.parent = undefined;
-        numerateTree(child, this.trees.length);
         this.trees.push(child);
+        
+        // it is good numerate everything from scratch. 
+        // Otherwise get the index of parent and child tree and take the least value
+        this.numerateTrees();
         // TODO: add history here
     }
 
     leftShift(nodeId) {
-        let nodeIndex = Number(nodeId.slice(-1)) - 1;
-        let parent = this.findNode(nodeId.slice(0,-1))[0];
-        if (parent.children.length == 1) {
-            console.warn(`Parent node: ${parent.label} contains only one child. Nothing is changed!`);
-            return;
-        } else if (nodeIndex == 0) {
-            console.warn(`The selected node is already thge leftmost child of: ${parent.label}. Nothing is changed!`);
+        //find the  node
+        let result = this.findNode(nodeId);
+        let node = result.shift();
+        if(node === undefined){
+            console.error('Node was not found!');
             return;
         }
+        
+        //Check for root node
+        if(nodeId.length === 1){
+            console.warn('The selected node is the root node. Nothing is changed!');
+            return;
+        }
+        
+        let indexList = result.shift();
+        let treeIndex = indexList[0];
+        let nodeIndex = indexList.slice(-1)[0]
+        
+        let parent = node.parent;
+        //Check whether it is the only node and check whether it is the left most node
+        if (parent.children.length == 1) {
+            console.warn('Parent node: ${parent.label} contains only one child. Nothing is changed!');
+            return;
+        } else if (nodeIndex === 0) {
+            console.warn('The selected node is already thge leftmost child of: ${parent.label}. Nothing is changed!');
+            return;
+        }
+        
+        //Removes the respective node from parent list
+        //Splice 2nd argument 1 means remove only one value
         let child = parent.children.splice(nodeIndex, 1)[0];
+        //Adds the element in the parent list with an index -1
+        //Splice 2nd argument 0 means don't remove any value, 3rd argument adds the child
         parent.children.splice(nodeIndex - 1, 0, child);
-        let parentTreeId = Number(nodeId.slice(0, 1)) - 1;
-        let parentTree = this.trees[parentTreeId];
-        numerateTree(parentTree, parentTreeId + 1);
+        
+        this.numerateTrees(treeIndex);
         this.active_history.push([this.rightShift, this, [child.id.toString()]]);
     }
-
     rightShift(nodeId) {
-        let nodeIndex = Number(nodeId.slice(-1)) - 1;
-        let parent = this.findNode(nodeId.slice(0,-1))[0];
-        if (parent.children.length == 1) {
-            console.warn(`Parent node: ${parent.label} contains only one child. Nothing is changed!`);
-            return;
-        } else if (nodeIndex == parent.children.length - 1) {
-            console.warn(`The selected node is already the rightmost child of: ${parent.label}. Nothing is changed!`);
+        //find the  node
+        let result = this.findNode(nodeId);
+        let node = result.shift();
+        if(node === undefined){
+            console.error('Node was not found!');
             return;
         }
+        
+        //Check for root node
+        if(nodeId.length === 1){
+            console.warn('The selected node is the root node. Nothing is changed!');
+            return;
+        }
+        
+        let indexList = result.shift();
+        let treeIndex = indexList[0];
+        let nodeIndex = indexList.slice(-1)[0]
+        
+        let parent = node.parent;
+        //Check whether it is the only node and check whether it is the right most node
+        if (parent.children.length == 1) {
+            console.warn('Parent node: ${parent.label} contains only one child. Nothing is changed!');
+            return;
+        } else if (nodeIndex === (parent.children.length - 1)) {
+            console.warn('The selected node is already thge rightmost child of: ${parent.label}. Nothing is changed!');
+            return;
+        }
+        
+        //Removes the respective node from parent list
+        //Splice 2nd argument 1 means remove only one value
         let child = parent.children.splice(nodeIndex, 1)[0];
+        //Adds the element in the parent list with an index +1
+        //Splice 2nd argument 0 means don't remove any value, 3rd argument adds the child
         parent.children.splice(nodeIndex + 1, 0, child);
-        let parentTreeId = Number(nodeId.slice(0, 1)) - 1;
-        let parentTree = this.trees[parentTreeId];
-        numerateTree(parentTree, parentTreeId + 1);
+        
+        this.numerateTrees(treeIndex);
         this.active_history.push([this.leftShift, this, [child.id.toString()]]);
     }
 
     addNode(parentId, label) {
-        // Find the parent node and append the child
-        // Appending will not change the Ids. Id sanity is maintained.
+        //find the  node
         let node = this.findNode(parentId)[0];
-        console.log(node);
-        if (node !== undefined) {
-            let addedNodeId = addNode(node, {label: label});
-            this.active_history.push([this.removeNode, this, [addedNodeId.toString()]])
-        }
-    }
-
-    addNodeAt(parentId, label, index) {
-        let node = this.findNode(parentId)[0];
-        if (node !== undefined) {
-            let addedNodeId = insertNode(node, {label: label}, index);
-            
-            //this.active_history.push([this.removeNode, this, [addedNodeId.toString()]]);
-        }
-    }
-
-    removeNode(nodeId) {
-        console.log("removeNode called");
-        let result=  this.findNode(nodeId);
-        let node = result[0];
-        let node_index = result[1];
-        console.log(node);
-        if(node !== undefined){
-            let parent = node.parent;
-            let deletedNode = parent.children.splice(node_index, 1)[0];
-            let node_label = deletedNode.label;
-            
-            //It is important to change all ids to maintain sanity
-            this.changeAllIds();
-            //this.active_history.push([this.addNodeAt, this, [parent.id.toString(), node_label, node_index]])
-        } else{
-            console.log('may the node is not found yet');
+        if(node === undefined){
+            console.error('Node was not found!');
+            return;
         }
         
-        /*let nodeStrPath = nodeId.split('');
-        let nodeDigitsPath = nodeStrPath.map(Number);
-        let treeId = nodeDigitsPath.shift() - 1;
+        let addedNodeId = addNode(node, {label: label});
+        this.active_history.push([this.removeNode, this, [addedNodeId.toString()]])
+    }
+    addNodeAt(parentId, label, index) {
+        //find the  node
+        let node = this.findNode(parentId)[0];
+        if(node === undefined){
+            console.error('Node was not found!');
+            return;
+        }
+        
+        let addedNodeId = insertNode(node, {label: label}, index);
+        this.active_history.push([this.removeNode, this, [addedNodeId.toString()]]);
+    }
+    removeNode(nodeId) {
+        //find the  node
+        let result = this.findNode(nodeId);
+        let node = result.shift();
+        if(node === undefined){
+            console.error('Node was not found!');
+            return;
+        }
+        
+        let indexList = result.shift();
+        let treeIndex = indexList[0];
+        let nodeIndex = indexList.slice(-1)[0]
+        
+                
+        let parent = node.parent;
+        if(parent){
+            let deletedNode = parent.children.splice(nodeIndex, 1)[0];
+            let node_label = deletedNode.label;
+            //this.active_history.push([this.addNodeAt, this, [parent.id.toString(), node_label, node_index]])
 
-        let tree = this.trees[treeId];
-        let node_index = nodeDigitsPath.pop() - 1;
-        let parent = tree;
-        let i;
-        while ((i = nodeDigitsPath.shift()) !== undefined) {
-            if (i > parent.children.length) {
-                console.log(`Path: ${nodeId} was not found`);
-                return;
-            }
-            parent = parent.children[i - 1];
+        } else{
+            // if node is the root (complete tree is being removed)
+            let deletedNode = this.trees.splice(treeIndex,1)[0];
+            let node_label = deletedNode.label;
+            //this.active_history.push([this.trees.push, this.trees, [node_index]])
+
         }
 
-        if (parent !== undefined) {
-            let node = parent.children.splice(node_index, 1)[0];
-            let node_label = node.label;
-            this.active_history.push([this.addNodeAt, this, [parent.id.toString(), node_label, node_index]])
-        } else{
-            console.log('may the node is not found yet')
-        }*/
+        //Numerating from the current tree is suffice
+        this.numerateTrees(treeIndex);
+    }  
+    setNodeLabel(nodeId, label) {
+        //find the  node
+        let node = this.findNode(nodeId)[0];
+        if(node === undefined){
+            console.error('Node was not found!');
+            return;
+        }
+        let old_label = node.label;
+        node.label = label;
+        
+        this.active_history.push([this.setNodeLabel, this, [nodeId, old_label]]);
     }
 
     undo() {
@@ -186,7 +263,6 @@ class Tree {
             this.active_history = this.history;
         }
     }
-
     redo() {
         let operation = this.redo_history.pop();
         if (operation !== undefined) {
@@ -195,15 +271,57 @@ class Tree {
     }
     
     hasNodeLeft(nodeId){
-        return Math.random() > 0.5;
-    }
-    
+        //find the  node
+        let result = this.findNode(nodeId);
+        let node = result.shift();
+        if(node === undefined){
+            //console.error('Node was not found!');
+            return;
+        }
+        
+        //Check for root node
+        if(nodeId.length === 1){
+            //console.warn('The selected node is the root node. Nothing is changed!');
+            return;
+        }
+        
+        let indexList = result.shift();
+        let treeIndex = indexList[0];
+        let nodeIndex = indexList.slice(-1)[0]
+        
+        let parent = node.parent;
+                
+        //Check whether it is the only node and check whether it is the left most node
+        return (nodeIndex !== 0);
+    }    
     hasNodeRight(nodeId){
-        return Math.random() > 0.5;
+        //find the  node
+        let result = this.findNode(nodeId);
+        let node = result.shift();
+        if(node === undefined){
+            //console.error('Node was not found!');
+            return;
+        }
+        
+        //Check for root node
+        if(nodeId.length === 1){
+            //console.warn('The selected node is the root node. Nothing is changed!');
+            return;
+        }
+        
+        let indexList = result.shift();
+        let treeIndex = indexList[0];
+        let nodeIndex = indexList.slice(-1)[0]
+        
+        let parent = node.parent;
+                
+        //Check whether it is the only node and check whether it is the right most node
+        
+        return (nodeIndex !== (parent.children.length - 1));
     }
     
-    changeAllIds(){
-        function changeTreeIds(node, newId){
+    numerateTrees(treeId=1){
+        function numerateTree(node, newId){
             // Change the current node to new Id
             node.id = newId;
             // Enumerate through the children and set their Ids based on new Id
@@ -212,21 +330,19 @@ class Tree {
                 let childrenId  = newId*10 + 1;
                 for (let j in children) {
                     let child = children[j];
-                    changeTreeIds(child, childrenId);
+                    numerateTree(child, childrenId);
                     childrenId = childrenId + 1;
                 }
             }
         }
         
-        console.log(this.trees);
-        let treeId = 1;
-        // Enumerate the tree one by one and set their ids in incremental fashion
-        for(let i in this.trees){
-            let tree = this.trees[i];
-            changeTreeIds(tree, 1);
-            treeId = treeId + 1;
+        if(treeId <= 0){
+            treeId = 1;
         }
-        console.log(this.trees);
+        // Enumerate the tree one by one and set their ids in incremental fashion
+        for(let i = treeId; i<=this.trees.length;i++){
+            numerateTree(this.trees[i-1], i);
+        }
     }
 
 }
@@ -303,17 +419,6 @@ function parse2str(tree, level = 0) {
         result += ' ' + parse2str(children[0], level);
     }
     return result + ')';
-}
-
-function numerateTree(node, gorn = 0) {
-    node.id = gorn;
-    gorn *= 10;
-    if (node.hasOwnProperty('children')) {
-        children = node.children;
-        for (let i = 0; i < children.length; i++) {
-            numerateTree(children[i], gorn + (i + 1));
-        }
-    }
 }
 
 /*
