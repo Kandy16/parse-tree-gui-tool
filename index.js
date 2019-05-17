@@ -14,7 +14,7 @@ var loadTreeFunc = function () {
     const parse_str = document.querySelector("#input").value.trim().replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/g, ' ');
     if (parse_str.startsWith('(') && parse_str.endsWith(')')) {
         const treeDS = parseBrackets(parse_str);
-        treeObj = new Tree(treeDS);
+        treeObj = new TreeGroup(treeDS);
         if (treeObj) {
 
             drawTree(treeObj);
@@ -61,11 +61,10 @@ function drawTree(treeObj) {
     clearNodeVariables();
     clearEdgeVariables();
 
-    var parentDiv = document.querySelector("div#parses");
-    removeAllChildren(parentDiv);
     removeGraphLibNodes();
 
-    // Display the status - Not sure why is it useful :-)
+    // Display the status - Will be mapped with textbox later
+    var parentDiv = document.querySelector("#parses");
     parentDiv.appendChild(create_graph_div(treeObj.trees[0]));
     
     // Build a new graph from scratch
@@ -82,6 +81,8 @@ function drawTree(treeObj) {
 
 //creates a new div for a new parse
 function create_graph_div(tree) {
+    
+    
     let div = document.createElement("DIV");
     let pre = document.createElement("PRE");
     pre.innerHTML = parse2str(tree);
@@ -341,7 +342,7 @@ var addNodeClickFunc = function () {
     console.log('Add node clicked');
     event.stopImmediatePropagation();
     if (selectedNodeIndex != undefined) {
-        treeObj.addNode(selectedNodeIndex, 'node');   
+        treeObj.addNode(selectedNodeIndex, 'new_node');   
         setTimeout(drawTree(treeObj), 1000);
     } else{
         console.log('Select the node first !!!');
@@ -464,3 +465,21 @@ var editEdgeClickFunc = function(){
         console.log('Select the edge first !!!');
     }    
 };
+
+var undoClickFunc = function(){
+    console.log('Undo clicked!!');
+    event.stopImmediatePropagation();
+    treeObj.undo();
+    setTimeout(drawTree(treeObj), 1000);    
+};
+$('#undo').click(undoClickFunc);
+
+var redoClickFunc = function(){
+    console.log('Redo clicked!!');
+    event.stopImmediatePropagation();
+    treeObj.redo();
+    setTimeout(drawTree(treeObj), 1000);    
+};
+$('#redo').click(redoClickFunc);
+
+//TBD - Need to make the whole control as a components and be able to instantiate it

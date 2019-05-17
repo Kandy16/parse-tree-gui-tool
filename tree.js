@@ -1,10 +1,12 @@
-class Tree {
+//TBD - Yet to comeup with a name. Some alternatives are TreeFactory, TreesModel, Graph
+class TreeGroup {
     constructor(tree) {
         this.trees = [];
         this.trees.push(tree);
         this.history = [];
         this.redo_history = [];
         this.active_history = this.history;
+        this.isUndoRedoAction = false;
     }
 
     findNode(nodeId) {
@@ -41,6 +43,7 @@ class Tree {
         node.gf = label;
         
         this.active_history.push([this.setEdgeLabel, this, [nodeId, old_label]]);
+        this.clearRedoList();
     }
     addEdge(parentId, childId, label = undefined) {
         // find the parentNode
@@ -64,7 +67,7 @@ class Tree {
         }
         
         // Remove the child tree from tree list and add it under parent node
-        let childIndex = parseInt(childId) - 1;
+        let childTreeId = parseInt(childId) - 1;
         child = this.trees.splice(childTreeId, 1)[0];
         parent.children.push(child);
         child.parent = parent;
@@ -74,8 +77,10 @@ class Tree {
         
         // it is good numerate everything from scratch. 
         // Otherwise get the index of parent and child tree and take the least value
-        numerateTrees();
-        // TODO: add history here
+        this.numerateTrees();
+        this.active_history.push([this.removeEdge, this, [parent.id, child.id]]);
+        this.clearRedoList();
+        
     }
     removeEdge(parentId, childId) {
         if (parentId.indexOf(childId) !== -1) {
@@ -107,7 +112,8 @@ class Tree {
         // it is good numerate everything from scratch. 
         // Otherwise get the index of parent and child tree and take the least value
         this.numerateTrees();
-        // TODO: add history here
+        this.active_history.push([this.addEdge, this, [parent.id, child.id]]);
+        this.clearRedoList();
     }
 
     leftShift(nodeId) {
@@ -147,7 +153,8 @@ class Tree {
         parent.children.splice(nodeIndex - 1, 0, child);
         
         this.numerateTrees(treeIndex);
-        this.active_history.push([this.rightShift, this, [child.id.toString()]]);
+        this.active_history.push([this.rightShift, this, [child.id]]);
+        this.clearRedoList();
     }
     rightShift(nodeId) {
         //find the  node
@@ -186,7 +193,8 @@ class Tree {
         parent.children.splice(nodeIndex + 1, 0, child);
         
         this.numerateTrees(treeIndex);
-        this.active_history.push([this.leftShift, this, [child.id.toString()]]);
+        this.active_history.push([this.leftShift, this, [child.id]]);
+        this.clearRedoList();
     }
 
     addNode(parentId, label) {
@@ -197,10 +205,12 @@ class Tree {
             return;
         }
         
-        let addedNodeId = addNode(node, {label: label});
-        this.active_history.push([this.removeNode, this, [addedNodeId.toString()]])
+        let addedNodeId = addNode(node, {label: label, gf:''});
+        this.active_history.push([this.removeNode, this, [addedNodeId]]);
+        this.clearRedoList();
     }
-    addNodeAt(parentId, label, index) {
+    addNodeAt(parentId, index, childNode) {
+        
         //find the  node
         let node = this.findNode(parentId)[0];
         if(node === undefined){
@@ -208,9 +218,23 @@ class Tree {
             return;
         }
         
-        let addedNodeId = insertNode(node, {label: label}, index);
-        this.active_history.push([this.removeNode, this, [addedNodeId.toString()]]);
+        node.children.splice(index, 0, childNode);
+        childNode.parent = node;
+        
+        this.numerateTrees();
+        this.active_history.push([this.removeNode, this, [childNode.id]]);
+        this.clearRedoList();
     }
+    
+    addTreeAt(index, childTree){
+        this.trees.splice(index, 0, childTree);
+        childTree.parent = undefined;
+        
+        this.numerateTrees();
+        this.active_history.push([this.removeNode, this, [childTree.id]]);
+        this.clearRedoList();
+    }
+    
     removeNode(nodeId) {
         //find the  node
         let result = this.findNode(nodeId);
@@ -229,20 +253,23 @@ class Tree {
         if(parent){
             let deletedNode = parent.children.splice(nodeIndex, 1)[0];
             let node_label = deletedNode.label;
-            //this.active_history.push([this.addNodeAt, this, [parent.id.toString(), node_label, node_index]])
+            //Numerating from the current tree is suffice
+            this.numerateTrees(treeIndex);
+            
+            this.active_history.push([this.addNodeAt, this, [parent.id, nodeIndex, deletedNode]])
 
         } else{
             // if node is the root (complete tree is being removed)
             let deletedNode = this.trees.splice(treeIndex,1)[0];
             let node_label = deletedNode.label;
-            //this.active_history.push([this.trees.push, this.trees, [node_index]])
-
+            //Numerating from the current tree is suffice
+            this.numerateTrees(treeIndex);
+            
+            this.active_history.push([this.addTreeAt, this, [treeIndex, deletedNode]])
         }
-
-        //Numerating from the current tree is suffice
-        this.numerateTrees(treeIndex);
+        this.clearRedoList();
     }  
-    setNodeLabel(nodeId, label) {
+    setNodeLabel(nodeId, label='') {
         //find the  node
         let node = this.findNode(nodeId)[0];
         if(node === undefined){
@@ -253,20 +280,35 @@ class Tree {
         node.label = label;
         
         this.active_history.push([this.setNodeLabel, this, [nodeId, old_label]]);
+        this.clearRedoList();
     }
 
     undo() {
+        //pop the operation from history and perform.
+        //Before performing assign the active history as redo history . 
+        //So that all reactions for operation will be logged in redo history.
+        //Assign the active history back to undo history
         let operation = this.history.pop();
         if (operation !== undefined) {
             this.active_history = this.redo_history;
+            this.isUndoRedoAction = true;
             Reflect.apply.apply(null, operation);
+            this.isUndoRedoAction = false;
             this.active_history = this.history;
         }
     }
     redo() {
+        //pop the operation from redo history and perform.
         let operation = this.redo_history.pop();
         if (operation !== undefined) {
+            this.isUndoRedoAction = true;
             Reflect.apply.apply(null, operation);
+            this.isUndoRedoAction = false;
+        }
+    }
+    clearRedoList(){
+        if(!this.isUndoRedoAction && this.redo_history.length > 0){
+            this.redo_history=[];
         }
     }
     
@@ -323,7 +365,7 @@ class Tree {
     numerateTrees(treeId=1){
         function numerateTree(node, newId){
             // Change the current node to new Id
-            node.id = newId;
+            node.id = newId.toString();
             // Enumerate through the children and set their Ids based on new Id
             let children = node.children;
             if (children) {
@@ -355,28 +397,9 @@ function addNode(parent, child, rootId = 1) {
         }
         parent.children.push(child);
         child.parent = parent;
-        child.id = parent.id * 10 + parent.children.length;
+        child.id = (parent.id * 10 + parent.children.length).toString();
     } else {
-        child.id = rootId;
-    }
-    if (!child.hasOwnProperty('class')) {
-        child.class = [];
-    }
-    child.class.push('type-' + child.id);
-    return child.id;
-}
-
-// append a new child to the parent and set backreference child.parent
-function insertNode(parent, child, at = 0, rootId = 1) {
-    if (parent) {
-        if (!parent.hasOwnProperty('children')) {
-            parent.children = [];
-        }
-        parent.children.splice(at, 0, child);
-        child.parent = parent;
-        child.id = parent.id * 10 + parent.children.length;
-    } else {
-        child.id = rootId;
+        child.id = rootId.toString();
     }
     if (!child.hasOwnProperty('class')) {
         child.class = [];
@@ -442,7 +465,8 @@ function parseBrackets(brackets) {
             return null;
         }
         const node = {label: ntarray[0]};
-
+        node.gf='';
+        
         if (ntarray.length >= 2) {
             const gf = ntarray[1].trim();
             if (gf !== 'NONE' && gf !== 'NONE/nohead') {
@@ -545,3 +569,13 @@ function parseBrackets(brackets) {
     console.assert(unmatched_brackets === 0);
     return parentobj;
 }
+
+
+// TDB - Create class TreeModel which manages single tree which will be called by the group
+
+//TBD
+//When trees are redrawn - Should this library be handling what is the current selectedNode and where has it gone
+// It looks more of a UI operation but it is impossible to do it in UI layer
+
+
+//TBD Loading  and Serialization, creation of Graphlib nodes need to be moved to a separate class
