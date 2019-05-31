@@ -60,6 +60,7 @@ function drawTree(treeObj) {
     // Cleaning all resources
     clearNodeVariables();
     clearEdgeVariables();
+    parentNodeIndex = undefined;
 
     removeGraphLibNodes();
 
@@ -168,14 +169,21 @@ var addActionButtonsOnNode = function (argNode) {
     //Both addition and deletion nodes are shown to the left of the node and the rest to the right
     var addNode = "<g class='add'><image xlink:href='lib/open-iconic-master/png/plus-4x.png' x='-60' y='20' height='20' width='20'></image> <rect class='btn' onclick='addNodeClickFunc()' x='-60' y='20' width='20' height='20'/></g>";
     var deleteNode = "<g class='delete'><image xlink:href='lib/open-iconic-master/png/delete-4x.png' x='-30' y='20' height='20' width='20'></image> <rect class='btn' onclick='removeNodeClickFunc()' x='-30' y='20' width='20' height='20'/></g>";
-
+    
     var editNode = "<g class='edit'><image xlink:href='lib/open-iconic-master/png/wrench-4x.png' x='20' y='20' height='20' width='20'></image> <rect class='btn' onclick='editNodeClickFunc()' x='20' y='20' width='20' height='20'/></g>";
     var moveLeftNode = "<g class='left'><image xlink:href='lib/open-iconic-master/png/caret-left-4x.png' x='50' y='20' height='20' width='20'></image> <rect class='btn' onclick='moveLeftClickFunc()' x='50' y='20' width='20' height='20'/></g>";
     var moveRightNode = "<g class='right'><image xlink:href='lib/open-iconic-master/png/caret-right-4x.png' x='80' y='20' height='20' width='20'></image> <rect class='btn' onclick='moveRightClickFunc()' x='80' y='20' width='20' height='20'/></g>";
+    
+    var makeMaster = "<g class='master'><image xlink:href='lib/open-iconic-master/png/media-record-4x.png' x='-30' y='-40' height='20' width='20'></image> <rect class='btn' onclick='selectParentNodeClickFunc()' x='-30' y='-40' width='20' height='20'/></g>";
+    var addEdge = "<g class='addChild'><image xlink:href='lib/open-iconic-master/png/sun-4x.png' x='20' y='-40' height='20' width='20'></image> <rect class='btn' onclick='addEdgeClickFunc()' x='20' y='-40' width='20' height='20'/></g>";
+    
 
     if (argNode != undefined) {
-        elements = "<g class='settingsGroup' visibility='hidden'>" + addNode + deleteNode + editNode +
-                    moveLeftNode + moveRightNode + "</g>";
+        elements = "<g class='settingsGroup' visibility='hidden'>" + 
+                    makeMaster + addEdge +
+                    addNode + deleteNode + 
+                    editNode + moveLeftNode + moveRightNode + 
+                    "</g>";
         // For some reasons adding elements using DOM APIs was not reflecting. Not sure why? and hence resolved to innerHTML
         argNode.innerHTML = argNode.innerHTML + elements;
     }
@@ -345,7 +353,7 @@ var addNodeClickFunc = function () {
         treeObj.addNode(selectedNodeIndex, 'new_node');   
         setTimeout(drawTree(treeObj), 1000);
     } else{
-        console.log('Select the node first !!!');
+        console.log('Select a node first !!!');
     }
 };
 var removeNodeClickFunc = function () {
@@ -355,17 +363,21 @@ var removeNodeClickFunc = function () {
         treeObj.removeNode(selectedNodeIndex);
         setTimeout(drawTree(treeObj), 1000);
     } else{
-        console.log('Select the node first !!!');
+        console.log('Select a node first !!!');
     }
 };
 var editNodeClickFunc = function () {
     console.log('Edit button clicked!!');
     event.stopImmediatePropagation();
-    if (selectedNodeIndex != undefined) {        
-        treeObj.setNodeLabel(selectedNodeIndex,'new_label');
-        setTimeout(drawTree(treeObj), 1000);
+    if (selectedNodeIndex != undefined) {
+        let oldLabel = treeObj.getNodeLabel(selectedNodeIndex);
+        let newLabel = prompt('Please enter a new node label: ',oldLabel);
+        if(newLabel != null){
+            treeObj.setNodeLabel(selectedNodeIndex, newLabel);
+            setTimeout(drawTree(treeObj), 1000);
+        }
     } else{
-        console.log('Select the node first !!!');
+        console.log('Select a node first !!!');
     }
 };
 
@@ -376,7 +388,7 @@ var moveLeftClickFunc = function () {
         treeObj.leftShift(selectedNodeIndex);
         setTimeout(drawTree(treeObj), 1000);
     } else{
-        console.log('Select the node first !!!');
+        console.log('Select a node first !!!');
     }
 };
 var moveRightClickFunc = function(){
@@ -386,13 +398,13 @@ var moveRightClickFunc = function(){
         treeObj.rightShift(selectedNodeIndex);
         setTimeout(drawTree(treeObj), 1000);
     } else{
-        console.log('Select the node first !!!');
+        console.log('Select a node first !!!');
     }
 };
 
 var selectedEdgeIndex = undefined;
+var parentNodeIndex = undefined;
 var selectedEdge = undefined;
-var recipientNodeIdentifier = undefined;
 
 var clearEdgeVariables = function(){
     if (selectedEdgeIndex != undefined) {
@@ -440,6 +452,41 @@ var selectEdgeFunc = function (edgeIndex) {
 
 };
 
+var selectParentNodeClickFunc = function(){
+    if(selectedNodeIndex != undefined){
+        parentNodeIndex = selectedNodeIndex;
+    } else{
+        console.log('Select a node first !!!')
+    }
+};
+
+var addEdgeClickFunc = function(){
+    console.log('Add edge clicked');
+    // It is important to stop the event from bubbling up.
+    // Otherwise when the remove and edit edge buttons are clicked, once after their respective event handlers are executed,
+    // the event bubbles up and calls the click event handlers of the element. This needs to be stopped.
+    event.stopImmediatePropagation();
+    if(selectedNodeIndex != undefined){
+        if (parentNodeIndex != undefined) {
+            if(!treeObj.hasParentNode(selectedNodeIndex)){
+                if(selectedNodeIndex != parentNodeIndex){
+                    console.log('Arguments : ', parentNodeIndex, selectedNodeIndex);
+                    treeObj.addEdge(parentNodeIndex, selectedNodeIndex,'');
+                    setTimeout(drawTree(treeObj), 1000);        
+                } else{
+                    console.log('Cyclic reference exists! Choose a different node!!!');
+                }
+                
+            } else{
+                console.log('Select a node which does not have parent !!!');    
+            }
+        } else{
+            console.log('Select a parent node first !!!');
+        }
+    } else {
+        console.log('Select a node first !!!');
+    }
+};
 
 var removeEdgeClickFunc = function(){
     console.log('Remove edge clicked');
@@ -451,18 +498,23 @@ var removeEdgeClickFunc = function(){
         treeObj.removeEdge(selectedEdgeIndex['v'], selectedEdgeIndex['w']); 
         setTimeout(drawTree(treeObj), 1000);
     } else{
-        console.log('Select the edge first !!!');
+        console.log('Select an edge first !!!');
     }    
 };
 
 var editEdgeClickFunc = function(){
     console.log('Edit edge clicked!!');
     event.stopImmediatePropagation();
-    if (selectedEdgeIndex != undefined) {        
-        treeObj.setEdgeLabel(selectedEdgeIndex['w'],'new_label');
-        setTimeout(drawTree(treeObj), 1000);
+    if (selectedEdgeIndex != undefined) {
+        let oldLabel = treeObj.getEdgeLabel(selectedEdgeIndex['w']);
+        let newLabel = prompt('Please enter a new edge label: ',oldLabel);
+        if(newLabel != null){
+            //console.log('new input : ', newLabel);
+            treeObj.setEdgeLabel(selectedEdgeIndex['w'], newLabel);
+            setTimeout(drawTree(treeObj), 1000);
+        }
     } else{
-        console.log('Select the edge first !!!');
+        console.log('Select an edge first !!!');
     }    
 };
 

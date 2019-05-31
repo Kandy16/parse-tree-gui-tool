@@ -32,7 +32,17 @@ class TreeGroup {
         return [node,indexList]; // the node element and index of the element with respect to parent
     }
 
-    setEdgeLabel(nodeId, label) {
+    getEdgeLabel(nodeId) {
+        //find the  node
+        let node = this.findNode(nodeId)[0];
+        if(node === undefined){
+            console.error('Node was not found!');
+            return;
+        }
+        let label = node.gf;
+        return label;
+    }
+    setEdgeLabel(nodeId, label='') {
         //find the  node
         let node = this.findNode(nodeId)[0];
         if(node === undefined){
@@ -45,7 +55,7 @@ class TreeGroup {
         this.active_history.push([this.setEdgeLabel, this, [nodeId, old_label]]);
         this.clearRedoList();
     }
-    addEdge(parentId, childId, label = undefined) {
+    addEdge(parentId, childId, label='') {
         // find the parentNode
         let parent = this.findNode(parentId)[0];
         if(parent === undefined){
@@ -269,6 +279,16 @@ class TreeGroup {
         }
         this.clearRedoList();
     }  
+    getNodeLabel(nodeId) {
+        //find the  node
+        let node = this.findNode(nodeId)[0];
+        if(node === undefined){
+            console.error('Node was not found!');
+            return;
+        }
+        let label = node.label;
+        return label;
+    }
     setNodeLabel(nodeId, label='') {
         //find the  node
         let node = this.findNode(nodeId)[0];
@@ -360,6 +380,18 @@ class TreeGroup {
         //Check whether it is the only node and check whether it is the right most node
         
         return (nodeIndex !== (parent.children.length - 1));
+    }
+    hasParentNode(nodeId){
+        //find the  node
+        let result = this.findNode(nodeId);
+        let node = result.shift();
+        if(node === undefined){
+            //console.error('Node was not found!');
+            return;
+        }
+        
+        //check for non-root node. If so then they have a parent
+        return nodeId.length !== 1
     }
     
     numerateTrees(treeId=1){
