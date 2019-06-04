@@ -65,8 +65,7 @@ function drawTree(treeObj) {
     removeGraphLibNodes();
 
     // Display the status - Will be mapped with textbox later
-    var parentDiv = document.querySelector("#parses");
-    parentDiv.appendChild(create_graph_div(treeObj.trees[0]));
+    document.querySelector("#input").value = parse2str(treeObj);
     
     // Build a new graph from scratch
     for (i in treeObj.trees){
@@ -78,17 +77,6 @@ function drawTree(treeObj) {
     
     // Adds events such as select, add buttons to each and every node and edge
     linkTreeEvents();
-}
-
-//creates a new div for a new parse
-function create_graph_div(tree) {
-    
-    
-    let div = document.createElement("DIV");
-    let pre = document.createElement("PRE");
-    pre.innerHTML = parse2str(tree);
-    div.appendChild(pre);
-    return div;
 }
 
 var removeGraphLibNodes = function(){

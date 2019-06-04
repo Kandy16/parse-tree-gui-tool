@@ -9,13 +9,14 @@ class TreeGroup {
         this.isUndoRedoAction = false;
     }
 
+    
     findNode(nodeId) {
-        //nodeId will be like 1321...
+        //nodeId will be like 1.3.2.1
         // The first number will specify the tree and also the root node (It starts from 1)
         //The subsequent number will specify the index of the childnode of rootnode. (They also start from 1)
         
-        let nodeStrPath = nodeId.split(''); //gives out an array of individual characters
-        let nodeDigitsPath = nodeStrPath.map(Number); //converts all the characters to numbers
+        let nodeStrPath = nodeId.split('.'); //gives out an array of individual strings
+        let nodeDigitsPath = nodeStrPath.map(Number); //converts all the strings to numbers
         let treeId = nodeDigitsPath.shift() - 1; // Removes the left most digit. Subtract by 1 to get the treeId since nodeId starts from 1
         let indexList = [treeId]; // stores all the indexes. Starts with tree index
         let tree = this.trees[treeId]; 
@@ -70,8 +71,8 @@ class TreeGroup {
             return;
         }
         
-        //Check whether the child is the root node
-        if (childId.length != 1 || child.parent !== undefined) {
+        //Check whether the child is root node
+        if (!this.isRoot(childId) || child.parent !== undefined) {
             console.warn('Target node ${child.label} has already an incoming edge. Remove this edge first!');
             return;
         }
@@ -136,7 +137,7 @@ class TreeGroup {
         }
         
         //Check for root node
-        if(nodeId.length === 1){
+        if(this.isRoot(nodeId)){
             console.warn('The selected node is the root node. Nothing is changed!');
             return;
         }
@@ -176,7 +177,7 @@ class TreeGroup {
         }
         
         //Check for root node
-        if(nodeId.length === 1){
+        if(this.isRoot(nodeId)){
             console.warn('The selected node is the root node. Nothing is changed!');
             return;
         }
@@ -332,6 +333,11 @@ class TreeGroup {
         }
     }
     
+    isRoot(nodeId){
+        let node_constituents = nodeId.split('.');
+        return node_constituents.length === 1;
+    }
+    
     hasNodeLeft(nodeId){
         //find the  node
         let result = this.findNode(nodeId);
@@ -342,7 +348,7 @@ class TreeGroup {
         }
         
         //Check for root node
-        if(nodeId.length === 1){
+        if(this.isRoot(nodeId)){
             //console.warn('The selected node is the root node. Nothing is changed!');
             return;
         }
@@ -366,7 +372,7 @@ class TreeGroup {
         }
         
         //Check for root node
-        if(nodeId.length === 1){
+        if(this.isRoot(nodeId)){
             //console.warn('The selected node is the root node. Nothing is changed!');
             return;
         }
@@ -391,7 +397,7 @@ class TreeGroup {
         }
         
         //check for non-root node. If so then they have a parent
-        return nodeId.length !== 1
+        return !this.isRoot(nodeId);
     }
     
     numerateTrees(treeId=1){
@@ -401,10 +407,11 @@ class TreeGroup {
             // Enumerate through the children and set their Ids based on new Id
             let children = node.children;
             if (children) {
-                let childrenId  = newId*10 + 1;
+                //let childrenId  = newId*10 + 1;
+                let childrenId  = 1;
                 for (let j in children) {
                     let child = children[j];
-                    numerateTree(child, childrenId);
+                    numerateTree(child, newId+'.'+childrenId);
                     childrenId = childrenId + 1;
                 }
             }
@@ -429,7 +436,8 @@ function addNode(parent, child, rootId = 1) {
         }
         parent.children.push(child);
         child.parent = parent;
-        child.id = (parent.id * 10 + parent.children.length).toString();
+        //child.id = (parent.id * 10 + parent.children.length).toString();
+        child.id = (parent.id + '.' + parent.children.length).toString();
     } else {
         child.id = rootId.toString();
     }
@@ -441,7 +449,7 @@ function addNode(parent, child, rootId = 1) {
 }
 
 // returns neat formatted string representation of a parse
-function parse2str(tree, level = 0) {
+function parse2str(treeObj) {
     
     // returns string representaiton of a node
     function node2str(node) {
@@ -455,25 +463,38 @@ function parse2str(tree, level = 0) {
         return result;
     }
     
-    if (!tree) {
-        return;
-    }
-    const children = tree.children;
-    // check if the tree is a terminal
-    if (!children) {
-        return node2str(tree);
-    }
-    // tree is a nonterminal
-    let result = '(' + node2str(tree);
-    const spacing = '\t'.repeat(level + 1);
-    if (children.length > 1) {
-        for (let i in children) {
-            result += '\n' + spacing + parse2str(children[i], level + 1);
+    function tree2str(tree, level = 0){
+        if (!tree) {
+            return;
         }
-    } else {
-        result += ' ' + parse2str(children[0], level);
+        const children = tree.children;
+        // check if the tree is a terminal
+        if (!children) {
+            return node2str(tree);
+        }
+        // tree is a nonterminal
+        let result = '(' + node2str(tree);
+        const spacing = '\t'.repeat(level + 1);
+        if (children.length > 1) {
+            for (let i in children) {
+                result += '\n' + spacing + tree2str(children[i], level + 1);
+            }
+        } else {
+            result += ' ' + tree2str(children[0], level);
+        }
+        return result + ')';
     }
-    return result + ')';
+    
+    resultVal = '';
+    console.log('Inside parse2str',treeObj);
+    if (treeObj.trees) {
+        for (let i in treeObj.trees) {
+            let tree = treeObj.trees[i];
+            resultVal += tree2str(tree) + '\n\n'; 
+        }
+    }
+    
+    return resultVal;
 }
 
 /*
