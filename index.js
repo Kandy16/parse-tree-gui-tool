@@ -162,13 +162,13 @@ var addActionButtonsOnNode = function (argNode) {
     var moveLeftNode = "<g class='left'><image xlink:href='lib/open-iconic-master/png/caret-left-4x.png' x='50' y='20' height='20' width='20'></image> <rect class='btn' onclick='moveLeftClickFunc()' x='50' y='20' width='20' height='20'/></g>";
     var moveRightNode = "<g class='right'><image xlink:href='lib/open-iconic-master/png/caret-right-4x.png' x='80' y='20' height='20' width='20'></image> <rect class='btn' onclick='moveRightClickFunc()' x='80' y='20' width='20' height='20'/></g>";
     
-    var makeMaster = "<g class='master'><image xlink:href='lib/open-iconic-master/png/media-record-4x.png' x='-30' y='-40' height='20' width='20'></image> <rect class='btn' onclick='selectParentNodeClickFunc()' x='-30' y='-40' width='20' height='20'/></g>";
-    var addEdge = "<g class='addChild'><image xlink:href='lib/open-iconic-master/png/sun-4x.png' x='20' y='-40' height='20' width='20'></image> <rect class='btn' onclick='addEdgeClickFunc()' x='20' y='-40' width='20' height='20'/></g>";
+    var makeMasterNode = "<g class='makeMaster'><image xlink:href='lib/open-iconic-master/png/media-record-4x.png' x='-30' y='-40' height='20' width='20'></image> <rect class='btn' onclick='selectParentNodeClickFunc()' x='-30' y='-40' width='20' height='20'/></g>";
+    var addChildNode = "<g class='addChild'><image xlink:href='lib/open-iconic-master/png/sun-4x.png' x='20' y='-40' height='20' width='20'></image> <rect class='btn' onclick='addEdgeClickFunc()' x='20' y='-40' width='20' height='20'/></g>";
     
 
     if (argNode != undefined) {
         elements = "<g class='settingsGroup' visibility='hidden'>" + 
-                    makeMaster + addEdge +
+                    makeMasterNode + addChildNode +
                     addNode + deleteNode + 
                     editNode + moveLeftNode + moveRightNode + 
                     "</g>";
@@ -286,6 +286,7 @@ var clearNodeVariables = function(){
         var buttonsGroupElement = selectedNode.lastElementChild;
         buttonsGroupElement.querySelector('.left').setAttribute('visibility','hidden');
         buttonsGroupElement.querySelector('.right').setAttribute('visibility','hidden');
+        buttonsGroupElement.querySelector('.addChild').setAttribute('visibility','hidden');
         buttonsGroupElement.setAttribute('visibility', 'hidden');
 
     }
@@ -328,9 +329,14 @@ var selectNodeFunc = function (nodeIndex) {
     // If it is to the extreme left then move left can be made invisible and so on.
 
     leftNodeVisible = treeObj.hasNodeLeft(selectedNodeIndex)? 'visible':'hidden';
-    rightNodeVisible = treeObj.hasNodeRight(selectedNodeIndex)? 'visible':'hidden';
     buttonsGroupElement.querySelector('.left').setAttribute('visibility',leftNodeVisible);
+    
+    rightNodeVisible = treeObj.hasNodeRight(selectedNodeIndex)? 'visible':'hidden';
     buttonsGroupElement.querySelector('.right').setAttribute('visibility',rightNodeVisible);
+    
+    addChildNodeVisible = treeObj.hasParentNode(selectedNodeIndex)? 'hidden':'visible';
+    buttonsGroupElement.querySelector('.addChild').setAttribute('visibility',addChildNodeVisible);
+    
     //buttonsGroupElement.querySelector('.left').style.display='none';
 };
 

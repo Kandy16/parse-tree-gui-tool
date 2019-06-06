@@ -123,10 +123,46 @@ class TreeGroup {
         // it is good numerate everything from scratch. 
         // Otherwise get the index of parent and child tree and take the least value
         this.numerateTrees();
-        this.active_history.push([this.addEdge, this, [parent.id, child.id]]);
+        this.active_history.push([this.addEdgeAt, this, [parent.id, nodeIndex, child.id]]);
         this.clearRedoList();
     }
-
+    addEdgeAt(parentId, index, childId){
+        // find the parentNode
+        let parent = this.findNode(parentId)[0];
+        if(parent === undefined){
+            console.error('Source node was not found!');
+            return;
+        }
+        
+        //find the child node
+        let child = this.findNode(childId)[0];
+        if(child === undefined){
+            console.error('Target node was not found!');
+            return;
+        }
+        
+        //Check whether the child is root node
+        if (!this.isRoot(childId) || child.parent !== undefined) {
+            console.warn('Target node ${child.label} has already an incoming edge. Remove this edge first!');
+            return;
+        }
+        // Remove the child tree from tree list and add it under parent node
+        // Since this has to be a root node - parseInt can be applied directly.
+        // Otherwise split based on . and convert them to numbers and use it
+        
+        let childTreeId = parseInt(childId) - 1;
+        child = this.trees.splice(childTreeId, 1)[0];
+        
+        parent.children.splice(index, 0, child);
+        child.parent = parent;
+        
+        // it is good numerate everything from scratch. 
+        // Otherwise get the index of parent and child tree and take the least value
+        this.numerateTrees();
+        this.active_history.push([this.removeEdge, this, [parent.id, child.id]]);
+        this.clearRedoList();
+    }
+    
     leftShift(nodeId) {
         //find the  node
         let result = this.findNode(nodeId);
