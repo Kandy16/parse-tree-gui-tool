@@ -11,35 +11,15 @@
     <script src='lib/jquery-3.4.0.js'></script>
     <title>Tree GUI tool</title>
 </head>
-<body onload="loadTreeFunc()">
-    <h1>Tree GUI tool</h1>
-    <textarea id="input" rows="15">
-    (VROOT(SIMPX
-                    (SIMPX-KONJ
-                            (VF-3p (NX-ON-npn (NN-npn Monopole[lemma=Monopol])))
-                            (LK-VXFIN-3pis (VXFIN-HD-3pis (VMFIN-3pis sollen[lemma=sollen])))
-                            (VC-VXINF
-                                    (VXINF-OV (VVPP geknackt[lemma=knacken]))
-                                    (VXINF-HD (VAINF werden[lemma=werden]))))
-                    (KON und[lemma=und])
-                    (SIMPX-KONJ
-                            (VF-3p (NX-ON-npm (NN-npm Märkte[lemma=Markt])))
-                            (LK-VXFIN-3pis (VXFIN-HD-3pis (VMFIN-3pis sollen[lemma=sollen])))
-                            (VC-VXINF
-                                    (VXINF-OV (VVPP getrennt[lemma=trennen]))
-                                    (VXINF-HD (VAINF werden[lemma=werden]))))))
-    </textarea>
-
-    <div class="btn-group">
-        <input type="button" id='loadtree' value='Load' size=50>
-        
-        <input type="button" id='undo' value='Undo' size=50>
-        <input type="button" id='redo' value='Redo' size=50>
+<body>
+    <div id='graph'>
     </div>
-    <svg id="svg-canvas" width=960 height=600></svg>
-    <div id="log" class="fixed-content"> </div>
+    <div id='another_graph'>
+    </div>
 </body>
 <script src="util.js"></script>
 <script src="tree.js"></script>
+<script src="tree-group.js"></script>
+<script src="tree-gui.js"></script>
 <script src="index.js"></script>
 <!--<script src="change_text.js"></script>-->
