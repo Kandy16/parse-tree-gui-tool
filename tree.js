@@ -6,6 +6,7 @@ class Tree {
         this.redo_history = [];
         this.active_history = this.history;
         this.isUndoRedoAction = false;
+        this.selectedIndex = undefined;
     }
 
     findNode(nodeId) {
@@ -28,6 +29,17 @@ class Tree {
             indexList.push(i-1);
         }
         return [node,indexList]; // the node element and index of the element with respect to parent
+    }
+    
+    getNode(indexList){
+        //the indexList should have been obtained from findNode function.
+        //So no need to do sanity check
+        var target = this.tree;
+        var length = indexList.length;
+        for(var i=1;i<length;i++){
+            target = target.children[indexList[i]]
+        }
+        return target;
     }
     
     isRoot(nodeId){
@@ -54,7 +66,7 @@ class Tree {
         let treeIndex = indexList[0];
         let nodeIndex = indexList.slice(-1)[0]
         
-        let parent = node.parent;
+        let parent = this.getNode(indexList.slice(0,-1)); //get the parent - node.parent;
                 
         //Check whether it is the only node and check whether it is the left most node
         return (nodeIndex !== 0);
@@ -78,7 +90,7 @@ class Tree {
         let treeIndex = indexList[0];
         let nodeIndex = indexList.slice(-1)[0]
         
-        let parent = node.parent;
+        let parent = this.getNode(indexList.slice(0,-1));
                 
         //Check whether it is the only node and check whether it is the right most node
         
@@ -119,6 +131,7 @@ class Tree {
         
         this.active_history.push([this.setEdgeLabel, this, [nodeId, old_label]]);
         this.clearRedoList();
+        return true;
     }
     
     leftShift(nodeId) {
@@ -140,7 +153,7 @@ class Tree {
         let treeIndex = indexList[0];
         let nodeIndex = indexList.slice(-1)[0]
         
-        let parent = node.parent;
+        let parent = this.getNode(indexList.slice(0,-1));
         //Check whether it is the only node and check whether it is the left most node
         if (parent.children.length == 1) {
             console.warn('Parent node: ${parent.label} contains only one child. Nothing is changed!');
@@ -160,6 +173,7 @@ class Tree {
         this.numerate(treeIndex);
         this.active_history.push([this.rightShift, this, [child.id]]);
         this.clearRedoList();
+        return true;
     }
     rightShift(nodeId) {
         //find the  node
@@ -180,7 +194,7 @@ class Tree {
         let treeIndex = indexList[0];
         let nodeIndex = indexList.slice(-1)[0]
         
-        let parent = node.parent;
+        let parent = this.getNode(indexList.slice(0,-1));
         //Check whether it is the only node and check whether it is the right most node
         if (parent.children.length == 1) {
             console.warn('Parent node: ${parent.label} contains only one child. Nothing is changed!');
@@ -200,6 +214,7 @@ class Tree {
         this.numerate(treeIndex);
         this.active_history.push([this.leftShift, this, [child.id]]);
         this.clearRedoList();
+        return true;
     }
 
     addNode(parentId, label) {
@@ -213,6 +228,7 @@ class Tree {
         let addedNodeId = addNode(node, {label: label, gf:''});
         this.active_history.push([this.removeNode, this, [addedNodeId]]);
         this.clearRedoList();
+        return true;
     }
     addNodeAt(parentId, index, childNode) {
         let result = this.findNode(parentId);
@@ -226,11 +242,11 @@ class Tree {
         let treeIndex = indexList[0];
         
         node.children.splice(index, 0, childNode);
-        childNode.parent = node;
         
         this.numerate(treeIndex);
         this.active_history.push([this.removeNode, this, [childNode.id]]);
         this.clearRedoList();
+        return true;
     }
     
     removeNode(nodeId) {
@@ -247,7 +263,7 @@ class Tree {
         let nodeIndex = indexList.slice(-1)[0]
         
                 
-        let parent = node.parent;
+        let parent = this.getNode(indexList.slice(0,-1));
         if(parent){
             let deletedNode = parent.children.splice(nodeIndex, 1)[0];
             let node_label = deletedNode.label;
@@ -258,7 +274,8 @@ class Tree {
             this.clearRedoList();
         } else{
             console.warn('Dont remove the root node!');
-        } 
+        }
+        return true;
     }  
     getNodeLabel(nodeId) {
         //find the  node
@@ -282,8 +299,9 @@ class Tree {
         
         this.active_history.push([this.setNodeLabel, this, [nodeId, old_label]]);
         this.clearRedoList();
+        return true;
     }
-
+    
     undo() {
         //pop the operation from history and perform.
         //Before performing assign the active history as redo history . 
@@ -297,6 +315,7 @@ class Tree {
             this.isUndoRedoAction = false;
             this.active_history = this.history;
         }
+        return true;
     }
     redo() {
         //pop the operation from redo history and perform.
@@ -306,6 +325,7 @@ class Tree {
             Reflect.apply.apply(null, operation);
             this.isUndoRedoAction = false;
         }
+        return true;
     }
     clearRedoList(){
         if(!this.isUndoRedoAction && this.redo_history.length > 0){
@@ -313,8 +333,37 @@ class Tree {
         }
     }
     
-    numerate(newId='1', node=this.tree){
+    getAllProperties(){
+        var root = this.tree;
+        var properties = [];
         
+        function getProperties(node){
+            
+            if(node.properties){
+                properties.push(Object.keys(node.properties));
+            }
+            
+            if(node.children){
+                for(let i in node.children){
+                    getProperties(node.children[i]);
+                }
+            }
+            
+        }
+        
+        getProperties(root);
+        properties = properties.flat();
+        properties = Array.from(new Set(properties));
+        
+        return properties;
+    }
+    
+    numerate(newId='1', node=this.tree, selectionChanged=false){
+        // The index or id of selected node needs to be changed based on new numbering mechanism
+        if(this.selectedIndex == node.id && !selectionChanged){
+            selectionChanged = true;
+            this.selectedIndex = newId.toString();
+        }
         // Change the current node to new Id
         node.id = newId.toString();
         // Enumerate through the children and set their Ids based on new Id
@@ -324,7 +373,7 @@ class Tree {
             let childrenId  = 1;
             for (let j in children) {
                 let child = children[j];
-                this.numerate(newId+'.'+childrenId, child);
+                this.numerate(newId+'.'+childrenId, child, selectionChanged);
                 childrenId = childrenId + 1;
             }
         }
@@ -338,118 +387,108 @@ function addNode(parent, child, rootId = 1) {
             parent.children = [];
         }
         parent.children.push(child);
-        child.parent = parent;
         //child.id = (parent.id * 10 + parent.children.length).toString();
         child.id = (parent.id + '.' + parent.children.length).toString();
     } else {
         child.id = rootId.toString();
     }
-    if (!child.hasOwnProperty('class')) {
-        child.class = [];
-    }
-    child.class.push('type-' + child.id);
-    return child.id;
-}
-
-// returns string representaiton of a node
-function node2str(node) {
-    let result = node.label;
-    if (node.gf) {
-        result += '-' + node.gf;
-    }
-    if (node.morph) {
-        result += '-' + node.morph;
-    }
-    return result;
 }
 
 function tree2str(tree, level = 0){
+    
+    // returns string representaiton of a node
+    function node2str(node) {
+        let result = node.edge;
+        result += ' '+node.label;
+        
+        if(node.refId){
+            result += ' '+node.refId+'~';
+        }
+        
+        if(node.properties){
+            result += '[';
+            
+            for(var i in node.properties){
+                result += i+'='+node.properties[i]+','
+            }
+            result += ']';
+        }
+        return result;
+    }
+    
     if (!tree) {
         return;
-    }
-    const children = tree.children;
-    // check if the tree is a terminal
-    if (!children) {
-        return node2str(tree);
     }
     // tree is a nonterminal
     let result = '(' + node2str(tree);
     const spacing = '\t'.repeat(level + 1);
-    if (children.length > 1) {
+    const children = tree.children;
+    if(children){
         for (let i in children) {
             result += '\n' + spacing + tree2str(children[i], level + 1);
         }
-    } else {
-        result += ' ' + tree2str(children[0], level);
     }
     return result + ')';
 }
 
-/*
-    (TOP (SIMPX-NONE/nohead (VF-NONE/nohead (NX-ON (PPER-HD Es)))(LK-NONE (VXFIN-HD (VAFIN-HD ist)))(MF-NONE/nohead (NX-OA (ART-NONE eine)(ADJX-NONE (ADJA-HD schöne))(NN-HD Frau)))))
-    transforms parse string in bracketing format (as above) to an object
- */
 function parseBrackets(brackets) {
     
-    /*
-    Takes a nonterminal in form 'PH-GF-MORPH' and returns an object
-    {
-        label: PH,
-        gf: GF,
-        morph: MORPH,
+    function parseNode(ntstr){
+        let tempNode = {};
+        ntstr = ntstr.trim();
+        // 	(conj S 7~[subject={10},ref=13,head={11},] - A typical example look like this
+        // main separator is space - to get label, edge and properties
+        var items = ntstr.split(' ');
+        tempNode.label = items[0].trim();
+        if(items.length > 1){
+            tempNode.edge = tempNode.label;
+            tempNode.label = items[1].trim();
+            
+            if(items.length > 2){
+                //the first property contains the id associated with ~ symbol
+                var props = items[2].trim();
+                if(props.includes('~')){
+                    var props = props.split('~');
+                    tempNode.refId = props[0].trim();
+                    props = props[1].trim();
+                }
+                // the main properties are enclosed within [ and ] and each property is separated by , 
+                // Each property is a key value pair with = as delimiter
+                if(props.startsWith('[') && props.endsWith(']')){
+                    tempNode.properties = {};
+                    var props = props.slice(1,-1);
+                    var keyValues = props.split(',');
+                    for(var i in keyValues){
+                        var info = keyValues[i].trim();
+                        var keyValue = info.split('=');
+                        if(keyValue.length >= 2){
+                            tempNode.properties[keyValue[0]] = keyValue[1];
+                            //ignore the rest
+                        }
+                        
+                        // sometimes the coref will not have key
+                        if(info.startsWith('{') && info.endsWith('}')){
+                            tempNode.properties['coref'] = info;
+                        }
+
+                    }
+                }
+            }
+        }
+        return tempNode;    
     }
- */
-    function parseNonterminal(ntstr) {
-        const ntarray = ntstr.trim().split('-');
-        if (ntarray.length === 0) {
-            console.log("Unable to parse node:", ntstr);
-            return null;
+    
+    //Make the parser robust to handle single line comments such as //
+    let content = brackets.split('\n');
+    brackets = ''
+    //Enumerate each line and remove singe line comment symobol and rest of the string
+    for(let i in content){
+        let cindex = content[i].indexOf('\\');
+        if(cindex != -1){
+            brackets += '\n' + content[i].substr(0, cindex);
+        } else {
+            brackets += '\n' + content[i];
         }
-        const node = {label: ntarray[0]};
-        node.gf='';
-        
-        if (ntarray.length >= 2) {
-            const gf = ntarray[1].trim();
-            if (gf !== 'NONE' && gf !== 'NONE/nohead') {
-                node.gf = gf;
-            }
-        }
-
-        if (ntarray.length >= 3) {
-            const morph = ntarray[2].trim();
-            if (morph !== 'NONE') {
-                node.morph = morph;
-            }
-        }
-        return node;
-    }
-
-    /*
-        Create an object from a preterminal in form 'VMFIN-3pis'
-        {
-            label: VMFIN,
-            morph: 3pis,
-        }
-     */
-    function parsePreterminal(ntstr) {
-        const ntarray = ntstr.trim().split('-');
-        if (ntarray.length === 0) {
-            console.log("Unable to parse node:", ntstr);
-            return null;
-        }
-        const node = {label: ntarray[0]};
-        if (ntarray.length == 2) {
-            const morph = ntarray[1].trim();
-            if (morph !== 'NONE') {
-                node.morph = morph;
-            }
-        }
-
-        if (ntarray.length > 2) {
-            console.warn("Unknown preterminal format: ", ntstr)
-        }
-
-        return node;
     }
     
     //For this parser to work there should atleast a ROOT, a pre-terminal and terminal such as below
@@ -462,7 +501,10 @@ function parseBrackets(brackets) {
     // position of '(' and ')' paranthesis
     let unmatched_brackets = 0;
     let parentobj = null;
+    let rootObj = null;
     let node = '';
+    let parentStack = [];
+    
     for (let i in brackets) {
         let ch = brackets.charAt(i);
 
@@ -474,10 +516,14 @@ function parseBrackets(brackets) {
                 // At the very first time this will be empty.
                 if (!isEmpty(node)) {
                     // The extract content is a non-terminal since it does have children - (will be extracted using ')' paranthesis)
-                    let nonterminal = parseNonterminal(node);
+                    let nonterminal = parseNode(node);
                     // Add the extracted non-terminal under parentObj (which can be ROOT or other non-terminals)
                     addNode(parentobj, nonterminal);
                     parentobj = nonterminal;
+                    parentStack[unmatched_brackets-1] = parentobj;
+                    if(!rootObj){
+                        rootObj = nonterminal;
+                    }
                     node = '';
                 }
                 break;
@@ -488,18 +534,18 @@ function parseBrackets(brackets) {
                 // At the end of nodes with atleast one level of hierarchy - this will be empty.
                 // In that case choose the parent 
                 if (!isEmpty(node)) {
-                    let termArray = node.split(/\s+/);
-                    if (termArray.length > 1) {
-                        const preterm = parsePreterminal(termArray[0]);
-                        const term = termArray.slice(1).join(' ').trim();
-                        addNode(parentobj, preterm);
-                        addNode(preterm, {label: term, class: ["type-PRETERM"]});
+                    let nonterminal = parseNode(node);
+                    // Add the extracted non-terminal under parentObj (which can be ROOT or other non-terminals)
+                    addNode(parentobj, nonterminal);
+                    parentobj = nonterminal;
+                    if(!rootObj){
+                        rootObj = nonterminal;
                     }
                     node = '';
-                } else {
-                    if (unmatched_brackets) { // top element has no parent
-                        parentobj = parentobj.parent;
-                    }
+                } 
+                
+                if (unmatched_brackets) { // top element has no parent
+                    parentobj = parentStack[unmatched_brackets]
                 }
                 break;
                 // Collect the content untill we encounter '(' or ')'
@@ -507,14 +553,9 @@ function parseBrackets(brackets) {
                 node += ch;
         }
     }
-    console.assert(unmatched_brackets === 0);
-    return parentobj;
+    console.assert(unmatched_brackets === 0, unmatched_brackets);
+    return rootObj;
 }
-
-
-//TBD
-//When trees are redrawn - Should this library be handling what is the current selectedNode and where has it gone
-// It looks more of a UI operation but it is impossible to do it in UI layer
 
 
 //TBD Loading  and Serialization, creation of Graphlib nodes need to be moved to a separate class

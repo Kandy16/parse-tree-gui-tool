@@ -14,6 +14,8 @@ class TreeGUI{
         
         this.domElementId = domElementId;
         this.guiElement = document.querySelector("#"+this.domElementId);
+        
+        this.filterPropeties = ['all'];
 
         //Rendering of the Dagre library was not working when added through DOM API.
         // Not sure why? - There were many hierarchy of calls in D3 API and was throwing error
@@ -21,14 +23,30 @@ class TreeGUI{
         //This method of adding all DOM elements through innerHtml and adding event handlers which
         // are nested inside Object works out. So, sticking to it
         
-        this.guiElement.innerHTML = '<textarea class="input" rows="15"> (VROOT(SIMPX (SIMPX-KONJ (VF-3p (NX-ON-npn (NN-npn Monopole[lemma=Monopol]))) (LK-VXFIN-3pis (VXFIN-HD-3pis (VMFIN-3pis sollen[lemma=sollen]))) (VC-VXINF (VXINF-OV (VVPP geknackt[lemma=knacken])) (VXINF-HD (VAINF werden[lemma=werden])))) (KON und[lemma=und]) (SIMPX-KONJ (VF-3p (NX-ON-npm (NN-npm Märkte[lemma=Markt]))) (LK-VXFIN-3pis (VXFIN-HD-3pis (VMFIN-3pis sollen[lemma=sollen]))) (VC-VXINF (VXINF-OV (VVPP getrennt[lemma=trennen])) (VXINF-HD (VAINF werden[lemma=werden])))))) </textarea> \
-        <div class="btn-group"> \
-            <input type="button" class="load" value="Load" size=50> \
-            <input type="button" class="undo" value="Undo" size=50> \
-            <input type="button" class="redo" value="Redo" size=50> \
+        this.guiElement.innerHTML = ' \
+        <div class="row"> \
+            <div class="col-11"> \
+                <textarea class="input" rows="15"> (expr S (conj S 1~[subject={2},head={5},ref=3] (subj NP 2~[{4},ref=1] (head PropN 3~[{4}] (lex Mari 4~[stem=Mari,case=nominative,person=3,number=sg,gender=fem]))) (head V 5~[{6},ref=11] (lex liest 6~[stem=read,tense=present,person=3,number=sg,mode=active])) (dobj NP 13~[{14},ref=7] (head N 14~[{15},ref=7] (lex Bücher 15~[stem=book,case=accusative,person=3,number=pl,gender=masc])))) (coord C 13~[{12}] (lex und 12~[stem=and])) (conj S 7~[subject={10},ref=13,head={11}] (subj NP 8~[{10},ref=2] (head PropN 9~[{10}] (lex Jüri 10~[stem=Jüri,case=nominative,person=3,number=sg,gender=masc])))      (head V 11~[{12},ref=12] (lex schreibt 12~[stem=write,tense=present,person=3,number=sg,mode=active]))  (dobj NP 16~[{17},ref=7] (head N 17~[{18},ref=7] (lex Bücher 18~[stem=book,case=accusative,person=3,number=pl,gender=fem]))))) </textarea> \
+            </div> \
+            <div class="col-1"> \
+                <select class="choose_filter" multiple="True" size=15> \
+                </select> \
+            </div> \
         </div> \
-        <svg width=960 height=600></svg>';
-        
+        <div class="row> \
+            <div class="col-12"> \
+                <div class="btn-group"> \
+                    <input type="button" class="load" value="Load" size=50> \
+                    <input type="button" class="undo" value="Undo" size=50> \
+                    <input type="button" class="redo" value="Redo" size=50> \
+                </div> \
+            </div> \
+        </div> \
+        <div class="row"> \
+            <div class="col-12"> \
+                <svg class="drawing_area" width=960 height=600></svg> \
+            </div> \
+        </div>';
         // The event handlers will have event context and so this will most likely point to DOM
         // But inour case we need it to point to current object where these functions are residing
         // An arrow function expression will have parent context always - https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
@@ -37,8 +55,11 @@ class TreeGUI{
         this.guiElement.querySelector('.redo').onclick = ()=>this.redoClickFunc();
     }
 
-    loadTreeFunc() {
-        const parse_str = this.guiElement.querySelector(".input").value.trim().replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/g, ' ');
+    loadTreeFunc(parse_str='') {
+        if(!parse_str){
+            //if arguement passed empty then take the input from textbox
+            parse_str = this.guiElement.querySelector(".input").value.trim().replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/g, ' ');
+        }
         if (parse_str.startsWith('(') && parse_str.endsWith(')')) {
             const treeDS = parseBrackets(parse_str);
             this.treeGroupObj = new TreeGroup(treeDS);
@@ -57,13 +78,33 @@ class TreeGUI{
         this.parentNodeIndex = undefined;
 
         this.removeGraphLibNodes();
-
+        
+        //Filter properties
+        var properties = ['all', 'none','id'];
+        properties = properties.concat(this.treeGroupObj.getAllProperties());
+        
+        this.filterPropeties.filter(function(value, index, arr){
+           return properties.includes(value); 
+        });
+        
+        var filterElement = this.guiElement.querySelector('.choose_filter');
+        var filterOptionsText = '';
+        for(var i in properties){
+            let selected = '';
+            if(this.filterPropeties.includes(properties[i])){
+                selected=' selected';
+            }
+            filterOptionsText += '<option value="'+properties[i]+'"'+selected+'>'+properties[i]+'</option>'
+        }
+        filterElement.innerHTML = filterOptionsText;
+        filterElement.onchange = (event)=>this.handleFilterChange(event);
+                
         // Display the status - mapped with textbox. Updates are two ways
         this.guiElement.querySelector(".input").value = treeGroup2str(treeGroupObj);
 
         // Build a new graph from scratch
-        for (var i in treeGroupObj.trees){
-            this.build_graphLibObj(treeGroupObj.trees[i]);
+        for (var i in treeGroupObj.children){
+            this.build_graphLibObj(treeGroupObj.children[i]);
         }
 
         // Render the graph usng D3. This will use the SVG and add all elements
@@ -71,6 +112,16 @@ class TreeGUI{
 
         // Adds events such as select, add buttons to each and every node and edge
         this.linkTreeEvents();
+    }
+    
+    handleFilterChange(event){
+        this.filterPropeties = [];
+        for(let i in event.target.selectedOptions){
+            if(!isNaN(i)){
+                this.filterPropeties.push(event.target.selectedOptions[i].value);
+            }
+        }
+        setTimeout(this.drawTree(this.treeGroupObj), 1000);
     }
 
     removeGraphLibNodes(){
@@ -94,19 +145,32 @@ class TreeGUI{
             });
         }
 
-        // Create the node with label and class
-        //the label of the node (which is displayed)
-        let label = tree.label;
-        if (this.treeGroupObj.morph) {
-            label += '-' + tree.morph;
+        // Create the node content based on filters
+        //the label of the node (which is displayed)  
+        var labelContent = tree.label;
+        if(this.filterPropeties.includes('all') || 
+           this.filterPropeties.includes('id')){
+            if(tree.refId){
+                labelContent += ' '+tree.refId+'~';
+            }
         }
-        const graph_node = {label: label,};
-
-        // Class will be used to pin-point a specific node in the graph by using DOM elements
-
-        if (this.treeGroupObj.class) {
-            graph_node.class = tree.class.join(' ');
+        if(tree.properties && !this.filterPropeties.includes('none')){
+            let propertiesContent = '';
+            
+            for(var i in tree.properties){
+                if(this.filterPropeties.includes('all') || 
+                   this.filterPropeties.includes(i)){
+                    propertiesContent += i+'='+tree.properties[i]+',';    
+                }
+                
+            }
+            if(propertiesContent){
+                labelContent += '['+propertiesContent+']';    
+            }
+            
         }
+        const graph_node = {label: labelContent};
+
         // The ids start from 1 and goes on with 1.1,1.2,1.3 - to represent its three children and 1.1.1,1.1.2,1.1.3 to represent their children
         // The tree nodes contain the id within itself
         this.graphLibObj.setNode(tree.id, graph_node);
@@ -118,9 +182,9 @@ class TreeGUI{
             for (let i in children) {
                 let child = children[i];
                 this.build_graphLibObj(child);
-                const child_edge = {};
-                if (child.gf) {
-                    child_edge.label = child.gf;
+                const child_edge = {'label':''};
+                if (child.edge) {
+                    child_edge.label = child.edge;
                 }
                 this.graphLibObj.setEdge(tree.id, child.id, child_edge);
             }
@@ -224,7 +288,7 @@ class TreeGUI{
         }
 
         // Remove everything from svg element first
-        const svg = d3.select("#"+this.domElementId+" svg");
+        const svg = d3.select("#"+this.domElementId+" .drawing_area");
         svg.selectAll("*").remove();
         var svgGroup = svg.append("g");
 
@@ -243,7 +307,7 @@ class TreeGUI{
     linkTreeEvents(){
         //D3 event mapping is used. it has special arguments in event handlers such node/edge id,
         // index and the complete list of nodes/edges
-        const svg = d3.select("#"+this.domElementId+" svg");
+        const svg = d3.select("#"+this.domElementId+" .drawing_area");
 
         // For nodes
         var allNodes = svg.selectAll('g.node');
@@ -271,7 +335,17 @@ class TreeGUI{
                 this.addActionButtonsOnEdge(temp);
             }
         }
-
+        
+        //Since we redraw the graph every time when a single operation is performed, 
+        // selecting the same node is tricky. The tree objects make sure that they 
+        // update the id when numerated once again. Here, All nodes contain all the nodes
+        // We iterate to check which has the new updated id and call the selectNodeFunc accordingly.
+        //Even for edge operations - to make it simple we end up selecting the parent node
+        
+        allNodes.select((nodeId, nodeIndex, nodeList)=>
+              { if(nodeId == this.treeGroupObj.selectedIndex){
+                  this.selectNodeFunc(nodeId, nodeIndex, nodeList);
+            }});
     }
 
     clearNodeVariables(){
@@ -303,6 +377,7 @@ class TreeGUI{
 
         // Save the node Index and the element
         this.selectedNodeIndex = nodeId;
+        this.treeGroupObj.selectedIndex = nodeId;
         console.log('Selected Node index :',this.selectedNodeIndex);
         this.selectedNode = nodeList[nodeIndex];
 
@@ -421,6 +496,7 @@ class TreeGUI{
 
         // select both the edge index and element
         this.selectedEdgeIndex = edgeId;
+        this.treeGroupObj.selectedIndex = edgeId['v'];
         console.log('Selected Edge index :',this.selectedEdgeIndex);
         this.selectedEdge = edgeList[edgeIndex];
 

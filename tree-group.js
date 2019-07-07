@@ -2,11 +2,10 @@
 class TreeGroup extends Tree{
     constructor(inputTree) {
         super();
-        this.trees = [];
-        this.trees.push(inputTree);
+        this.children = [];
+        this.children.push(inputTree);
     }
 
-    
     findNode(nodeId) {
         //nodeId will be like 1.3.2.1
         // The first number will specify the tree and also the root node (It starts from 1)
@@ -16,7 +15,7 @@ class TreeGroup extends Tree{
         let nodeDigitsPath = nodeStrPath.map(Number); //converts all the strings to numbers
         let treeId = nodeDigitsPath.shift() - 1; // Removes the left most digit. Subtract by 1 to get the treeId since nodeId starts from 1
         let indexList = [treeId]; // stores all the indexes. Starts with tree index
-        let tree = this.trees[treeId]; 
+        let tree = this.children[treeId]; 
         let node = tree; 
         let i;
         while ((i = nodeDigitsPath.shift()) !== undefined) {
@@ -30,13 +29,24 @@ class TreeGroup extends Tree{
         return [node,indexList]; // the node element and index of the element with respect to parent
     }
     
+    getNode(indexList){
+        //the indexList should have been obtained from findNode function.
+        //So no need to do sanity check
+        var target = this.children[indexList[0]];
+        var length = indexList.length;
+        for(var i=1;i<length;i++){
+            target = target.children[indexList[i]]
+        }
+        return target;
+    }
+    
     addTreeAt(index, childTree){
-        this.trees.splice(index, 0, childTree);
-        childTree.parent = undefined;
+        this.children.splice(index, 0, childTree);
         
         this.numerate(); 
         this.active_history.push([this.removeNode, this, [childTree.id]]);
         this.clearRedoList();
+        return true;
     }
     
     removeNode(nodeId) {
@@ -53,7 +63,7 @@ class TreeGroup extends Tree{
         let nodeIndex = indexList.slice(-1)[0]
         
                 
-        let parent = node.parent;
+        let parent = this.getNode(indexList.slice(0,-1));
         if(parent){
             let deletedNode = parent.children.splice(nodeIndex, 1)[0];
             let node_label = deletedNode.label;
@@ -64,7 +74,7 @@ class TreeGroup extends Tree{
 
         } else{
             // if node is the root (complete tree is being removed)
-            let deletedNode = this.trees.splice(treeIndex,1)[0];
+            let deletedNode = this.children.splice(treeIndex,1)[0];
             let node_label = deletedNode.label;
             //Numerating from the current tree is suffice
             this.numerate(treeIndex);
@@ -72,34 +82,41 @@ class TreeGroup extends Tree{
             this.active_history.push([this.addTreeAt, this, [treeIndex, deletedNode]])
         }
         this.clearRedoList();
+        return true;
     }
 
     addEdge(parentId, childId, label='') {
         // find the parentNode
-        let parent = this.findNode(parentId)[0];
+        let parent_result = this.findNode(parentId);
+        let parent = parent_result[0];
         if(parent === undefined){
             console.error('Source node was not found!');
             return;
         }
         
         //find the child node
-        let child = this.findNode(childId)[0];
+        let child_result = this.findNode(childId);
+        let child = child_result[0];
         if(child === undefined){
             console.error('Target node was not found!');
             return;
         }
         
+        if(parent_result[1][0] == child_result[1][0]){
+            console.error('Both belong to the same tree. Choose nodes differently !!!');
+            return;
+        }
+        
         //Check whether the child is root node
-        if (!this.isRoot(childId) || child.parent !== undefined) {
+        if (!this.isRoot(childId)) {
             console.warn('Target node ${child.label} has already an incoming edge. Remove this edge first!');
             return;
         }
         
         // Remove the child tree from tree list and add it under parent node
         let childTreeId = parseInt(childId) - 1;
-        child = this.trees.splice(childTreeId, 1)[0];
+        child = this.children.splice(childTreeId, 1)[0];
         parent.children.push(child);
-        child.parent = parent;
         if (label !== undefined) {
             child.gf = label;
         }
@@ -109,7 +126,7 @@ class TreeGroup extends Tree{
         this.numerate();
         this.active_history.push([this.removeEdge, this, [parent.id, child.id]]);
         this.clearRedoList();
-        
+        return true;
     }
     removeEdge(parentId, childId) {
         if (parentId.indexOf(childId) !== -1) {
@@ -135,14 +152,14 @@ class TreeGroup extends Tree{
         let nodeIndex = result.shift().slice(-1)[0];
         // Remove the child from parent list and add it to tree list
         child = parent.children.splice(nodeIndex, 1)[0];
-        child.parent = undefined;
-        this.trees.push(child);
+        this.children.push(child);
         
         // it is good numerate everything from scratch. 
         // Otherwise get the index of parent and child tree and take the least value
         this.numerate();
         this.active_history.push([this.addEdgeAt, this, [parent.id, nodeIndex, child.id]]);
         this.clearRedoList();
+        return true;
     }
     addEdgeAt(parentId, index, childId){
         // find the parentNode
@@ -160,7 +177,7 @@ class TreeGroup extends Tree{
         }
         
         //Check whether the child is root node
-        if (!this.isRoot(childId) || child.parent !== undefined) {
+        if (!this.isRoot(childId)) {
             console.warn('Target node ${child.label} has already an incoming edge. Remove this edge first!');
             return;
         }
@@ -169,22 +186,54 @@ class TreeGroup extends Tree{
         // Otherwise split based on . and convert them to numbers and use it
         
         let childTreeId = parseInt(childId) - 1;
-        child = this.trees.splice(childTreeId, 1)[0];
+        child = this.children.splice(childTreeId, 1)[0];
         
         parent.children.splice(index, 0, child);
-        child.parent = parent;
         
         // it is good numerate everything from scratch. 
         // Otherwise get the index of parent and child tree and take the least value
         this.numerate();
         this.active_history.push([this.removeEdge, this, [parent.id, child.id]]);
         this.clearRedoList();
+        return true;
+    }
+    
+    getAllProperties(){
+        var properties = [];
+        
+        function getProperties(node){
+            
+            if(node.properties){
+                properties.push(Object.keys(node.properties));
+            }
+            
+            if(node.children){
+                for(let i in node.children){
+                    getProperties(node.children[i]);
+                }
+            }
+            
+        }
+        
+        // Enumerate the tree one by one and set their ids in incremental fashion
+        for(let i in this.children){
+            getProperties(this.children[i]);
+        }
+        properties = properties.flat();
+        properties = Array.from(new Set(properties));
+        
+        return properties;
     }
     
     numerate(treeId=1){
         
-        function numerateTree(newId='1', node=this.tree){
-            console.log('Numerate from Tree is executing !');
+        function numerateTree(that, newId='1', node=this.tree){
+            
+            // The index or id of selected node needs to be changed based on new numbering mechanism
+            if(that.selectedIndex == node.id && !selectionChanged){
+                selectionChanged = true;
+                that.selectedIndex = newId.toString();
+            }
 
             // Change the current node to new Id
             node.id = newId.toString();
@@ -195,18 +244,24 @@ class TreeGroup extends Tree{
                 let childrenId  = 1;
                 for (let j in children) {
                     let child = children[j];
-                    numerateTree(newId+'.'+childrenId, child);
+                    numerateTree(that, newId+'.'+childrenId, child);
                     childrenId = childrenId + 1;
                 }
             }
         }
-
+        
+        var selectionChanged = false;
         if(treeId <= 0){
             treeId = 1;
         }
         // Enumerate the tree one by one and set their ids in incremental fashion
-        for(let i = treeId; i<=this.trees.length;i++){
-            numerateTree(i, this.trees[i-1]);
+        for(let i = treeId; i<=this.children.length;i++){
+            numerateTree(this, i, this.children[i-1]);
+        }
+        
+        // if the selected index is not changed then set it to root id
+        if(!selectionChanged){
+            this.selectedIndex = this.children[0].id;
         }
     }
 
@@ -215,13 +270,11 @@ class TreeGroup extends Tree{
 // returns neat formatted string representation of a parse
 function treeGroup2str(treeGroup) {
     resultVal = '';
-    console.log('Inside treeGroup 2 str',treeGroup);
-    if (treeGroup.trees) {
-        for (let i in treeGroup.trees) {
-            let tree = treeGroup.trees[i];
+    if (treeGroup.children) {
+        for (let i in treeGroup.children) {
+            let tree = treeGroup.children[i];
             resultVal += tree2str(tree) + '\n\n'; 
         }
     }
-    
     return resultVal;
 }
