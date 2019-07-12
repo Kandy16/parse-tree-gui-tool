@@ -15,7 +15,7 @@ class TreeGUI{
         this.domElementId = domElementId;
         this.guiElement = document.querySelector("#"+this.domElementId);
         
-        this.filterPropeties = ['all'];
+        this.filterPropeties = ['none'];
 
         //Rendering of the Dagre library was not working when added through DOM API.
         // Not sure why? - There were many hierarchy of calls in D3 API and was throwing error
@@ -56,16 +56,29 @@ class TreeGUI{
     }
 
     loadTreeFunc(parse_str='') {
-        if(!parse_str){
+        var treeDS = undefined;
+        // It can either take string input or Parser data model input or empty-indicating that 
+        // we should use the textbox inside DOM
+        if(typeof(parse_str) == 'string'){
+            if(!parse_str){
             //if arguement passed empty then take the input from textbox
-            parse_str = this.guiElement.querySelector(".input").value.trim().replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/g, ' ');
-        }
-        if (parse_str.startsWith('(') && parse_str.endsWith(')')) {
-            const treeDS = parseBrackets(parse_str);
-            this.treeGroupObj = new TreeGroup(treeDS);
-            if (this.treeGroupObj) {
-                this.drawTree(this.treeGroupObj);
+            //there will always be input :-)
+                parse_str = this.guiElement.querySelector(".input").value.trim();
+                //replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/g, ' ');
             }
+            
+            if (parse_str.startsWith('(') && parse_str.endsWith(')')) {
+                treeDS = parseBrackets(parse_str);
+            } else {
+                treeDS = JSON.parse(parse_str);
+            }
+        } else if(typeof(parse_str) == 'object'){
+            treeDS = parse_str;
+        }
+            
+        this.treeGroupObj = new TreeGroup(treeDS);
+        if (this.treeGroupObj) {
+            this.drawTree(this.treeGroupObj);
         }
     }
 
@@ -115,9 +128,11 @@ class TreeGUI{
     }
     
     handleFilterChange(event){
+        //This is invoke when filters options (properties of parser tree) are changed
         this.filterPropeties = [];
+        //Enumerate the selected options and push it to filterProperties
         for(let i in event.target.selectedOptions){
-            if(!isNaN(i)){
+            if(!isNaN(i)){ //some properties are not numeric
                 this.filterPropeties.push(event.target.selectedOptions[i].value);
             }
         }
@@ -419,9 +434,9 @@ class TreeGUI{
         console.log('Add node clicked');
         event.stopImmediatePropagation();
         if (this.selectedNodeIndex != undefined) {
-            this.treeGroupObj.addNode(this.selectedNodeIndex, 'new_node');   
-            //this.drawTree(this.treeGroupObj);
-            setTimeout(this.drawTree(this.treeGroupObj), 1000);
+            if(this.treeGroupObj.addNode(this.selectedNodeIndex, 'new_node')) {
+                setTimeout(this.drawTree(this.treeGroupObj), 1000);    
+            }            
         } else{
             console.log('Select a node first !!!');
         }
@@ -430,8 +445,9 @@ class TreeGUI{
         console.log('Remove node clicked');
         event.stopImmediatePropagation();
         if (this.selectedNodeIndex != undefined) {        
-            this.treeGroupObj.removeNode(this.selectedNodeIndex);
-            setTimeout(this.drawTree(this.treeGroupObj), 1000);
+            if(this.treeGroupObj.removeNode(this.selectedNodeIndex)){
+                setTimeout(this.drawTree(this.treeGroupObj), 1000);    
+            }
         } else{
             console.log('Select a node first !!!');
         }
@@ -443,8 +459,9 @@ class TreeGUI{
             let oldLabel = this.treeGroupObj.getNodeLabel(this.selectedNodeIndex);
             let newLabel = prompt('Please enter a new node label: ',oldLabel);
             if(newLabel != null){
-                this.treeGroupObj.setNodeLabel(this.selectedNodeIndex, newLabel);
-                setTimeout(this.drawTree(this.treeGroupObj), 1000);
+                if(this.treeGroupObj.setNodeLabel(this.selectedNodeIndex, newLabel)){
+                    setTimeout(this.drawTree(this.treeGroupObj), 1000);    
+                }
             }
         } else{
             console.log('Select a node first !!!');
@@ -455,8 +472,9 @@ class TreeGUI{
         console.log('Move left clicked');
         event.stopImmediatePropagation();
         if (this.selectedNodeIndex != undefined) {
-            this.treeGroupObj.leftShift(this.selectedNodeIndex);
-            setTimeout(this.drawTree(this.treeGroupObj), 1000);
+            if(this.treeGroupObj.leftShift(this.selectedNodeIndex)){
+                setTimeout(this.drawTree(this.treeGroupObj), 1000);    
+            }
         } else{
             console.log('Select a node first !!!');
         }
@@ -465,8 +483,9 @@ class TreeGUI{
         console.log('Move right clicked');
         event.stopImmediatePropagation();
         if (this.selectedNodeIndex != undefined) {
-            this.treeGroupObj.rightShift(this.selectedNodeIndex);
-            setTimeout(this.drawTree(this.treeGroupObj), 1000);
+            if(this.treeGroupObj.rightShift(this.selectedNodeIndex)){
+                setTimeout(this.drawTree(this.treeGroupObj), 1000);    
+            }
         } else{
             console.log('Select a node first !!!');
         }
@@ -538,8 +557,9 @@ class TreeGUI{
                 if(!this.treeGroupObj.hasParentNode(this.selectedNodeIndex)){
                     if(this.selectedNodeIndex != this.parentNodeIndex){
                         console.log('Arguments : ', this.parentNodeIndex, this.selectedNodeIndex);
-                        this.treeGroupObj.addEdge(this.parentNodeIndex, this.selectedNodeIndex,'');
-                        setTimeout(this.drawTree(this.treeGroupObj), 1000);        
+                        if(this.treeGroupObj.addEdge(this.parentNodeIndex, this.selectedNodeIndex,'')){
+                            setTimeout(this.drawTree(this.treeGroupObj), 1000);            
+                        }
                     } else{
                         console.log('Cyclic reference exists! Choose a different node!!!');
                     }
@@ -562,8 +582,9 @@ class TreeGUI{
         // the event bubbles up and calls the click event handlers of the element. This needs to be stopped.
         event.stopImmediatePropagation();
         if (this.selectedEdgeIndex != undefined) {        
-            this.treeGroupObj.removeEdge(this.selectedEdgeIndex['v'], this.selectedEdgeIndex['w']); 
-            setTimeout(this.drawTree(this.treeGroupObj), 1000);
+            if(this.treeGroupObj.removeEdge(this.selectedEdgeIndex['v'], this.selectedEdgeIndex['w'])){
+                setTimeout(this.drawTree(this.treeGroupObj), 1000);    
+            }
         } else{
             console.log('Select an edge first !!!');
         }    
@@ -576,9 +597,9 @@ class TreeGUI{
             let oldLabel = this.treeGroupObj.getEdgeLabel(this.selectedEdgeIndex['w']);
             let newLabel = prompt('Please enter a new edge label: ',oldLabel);
             if(newLabel != null){
-                //console.log('new input : ', newLabel);
-                this.treeGroupObj.setEdgeLabel(this.selectedEdgeIndex['w'], newLabel);
-                setTimeout(this.drawTree(this.treeGroupObj), 1000);
+                if(this.treeGroupObj.setEdgeLabel(this.selectedEdgeIndex['w'], newLabel)){
+                    setTimeout(this.drawTree(this.treeGroupObj), 1000);    
+                }
             }
         } else{
             console.log('Select an edge first !!!');
@@ -588,15 +609,18 @@ class TreeGUI{
     undoClickFunc (){
         console.log('Undo clicked!!');
         event.stopImmediatePropagation();
-        this.treeGroupObj.undo();
-        setTimeout(this.drawTree(this.treeGroupObj), 1000);    
+        if(this.treeGroupObj.undo()){
+            setTimeout(this.drawTree(this.treeGroupObj), 1000);        
+        }
+        
     }
 
     redoClickFunc (){
         console.log('Redo clicked!!');
         event.stopImmediatePropagation();
-        this.treeGroupObj.redo();
-        setTimeout(this.drawTree(this.treeGroupObj), 1000);    
+        if(this.treeGroupObj.redo()){
+            setTimeout(this.drawTree(this.treeGroupObj), 1000);        
+        }
     }
 
 }

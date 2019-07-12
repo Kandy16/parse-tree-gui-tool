@@ -4,6 +4,7 @@ class TreeGroup extends Tree{
         super();
         this.children = [];
         this.children.push(inputTree);
+        this.numerate(); // for trees which are read from JSON
     }
 
     findNode(nodeId) {
@@ -56,6 +57,11 @@ class TreeGroup extends Tree{
         if(node === undefined){
             console.error('Node was not found!');
             return;
+        }
+        
+        if(this.children.length == 1 && this.isRoot(nodeId)){
+            console.warn('The root of only tree available cannot be deleted!!!');
+            return false;
         }
         
         let indexList = result.shift();
@@ -118,7 +124,7 @@ class TreeGroup extends Tree{
         child = this.children.splice(childTreeId, 1)[0];
         parent.children.push(child);
         if (label !== undefined) {
-            child.gf = label;
+            child.edge = label;
         }
         
         // it is good numerate everything from scratch. 

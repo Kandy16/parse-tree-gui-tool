@@ -116,7 +116,7 @@ class Tree {
             console.error('Node was not found!');
             return;
         }
-        let label = node.gf;
+        let label = node.edge;
         return label;
     }
     setEdgeLabel(nodeId, label='') {
@@ -126,8 +126,8 @@ class Tree {
             console.error('Node was not found!');
             return;
         }
-        let old_label = node.gf;
-        node.gf = label;
+        let old_label = node.edge;
+        node.edge = label;
         
         this.active_history.push([this.setEdgeLabel, this, [nodeId, old_label]]);
         this.clearRedoList();
@@ -225,7 +225,7 @@ class Tree {
             return;
         }
         
-        let addedNodeId = addNode(node, {label: label, gf:''});
+        let addedNodeId = addNode(node, {label: label, edge:''});
         this.active_history.push([this.removeNode, this, [addedNodeId]]);
         this.clearRedoList();
         return true;
@@ -308,23 +308,29 @@ class Tree {
         //So that all reactions for operation will be logged in redo history.
         //Assign the active history back to undo history
         let operation = this.history.pop();
-        if (operation !== undefined) {
-            this.active_history = this.redo_history;
-            this.isUndoRedoAction = true;
-            Reflect.apply.apply(null, operation);
-            this.isUndoRedoAction = false;
-            this.active_history = this.history;
+        
+        if(!operation){
+            return false; // there is nothing to undo
         }
+        
+        this.active_history = this.redo_history;
+        this.isUndoRedoAction = true;
+        Reflect.apply.apply(null, operation);
+        this.isUndoRedoAction = false;
+        this.active_history = this.history;
         return true;
     }
     redo() {
         //pop the operation from redo history and perform.
         let operation = this.redo_history.pop();
-        if (operation !== undefined) {
-            this.isUndoRedoAction = true;
-            Reflect.apply.apply(null, operation);
-            this.isUndoRedoAction = false;
+        
+        if(!operation){
+            return false; // there is nothing to redo
         }
+        
+        this.isUndoRedoAction = true;
+        Reflect.apply.apply(null, operation);
+        this.isUndoRedoAction = false;
         return true;
     }
     clearRedoList(){
@@ -440,6 +446,7 @@ function parseBrackets(brackets) {
         // main separator is space - to get label, edge and properties
         var items = ntstr.split(' ');
         tempNode.label = items[0].trim();
+        tempNode.edge = '';
         if(items.length > 1){
             tempNode.edge = tempNode.label;
             tempNode.label = items[1].trim();
@@ -462,15 +469,13 @@ function parseBrackets(brackets) {
                         var info = keyValues[i].trim();
                         var keyValue = info.split('=');
                         if(keyValue.length >= 2){
-                            tempNode.properties[keyValue[0]] = keyValue[1];
+                            tempNode.properties[keyValue[0].trim()] = keyValue[1].trim();
                             //ignore the rest
                         }
-                        
-                        // sometimes the coref will not have key
-                        if(info.startsWith('{') && info.endsWith('}')){
+                        else if(info.startsWith('{') && info.endsWith('}')){
+                            // sometimes the coref will not have key
                             tempNode.properties['coref'] = info;
                         }
-
                     }
                 }
             }
@@ -483,7 +488,7 @@ function parseBrackets(brackets) {
     brackets = ''
     //Enumerate each line and remove singe line comment symobol and rest of the string
     for(let i in content){
-        let cindex = content[i].indexOf('\\');
+        let cindex = content[i].indexOf('//');
         if(cindex != -1){
             brackets += '\n' + content[i].substr(0, cindex);
         } else {
@@ -557,5 +562,48 @@ function parseBrackets(brackets) {
     return rootObj;
 }
 
-
 //TBD Loading  and Serialization, creation of Graphlib nodes need to be moved to a separate class
+
+function parseWholeBracketsFile(content,lang){
+    let lines = content.split('\n');
+    content = ''
+    
+    var languageData = [];
+    
+    //Enumerate each line and remove singe line comment symobol and rest of the string
+    for(let i in lines){
+        content += '\n'+lines[i];
+        let lineWithRemoveComments = lines[i].replace(new RegExp("\/\/\/*","gi"),"").trim();
+        
+        if(lineWithRemoveComments == ''){
+            if(content){
+                let error = 0;
+                try{
+                    var parseContent = parseBrackets(content);
+                    if(parseContent){
+                        content = '';
+                        var parseData = {"meaning":"","comment":""};
+                        parseData[lang] = [{"gloss":[],"comment":"","tree":parseContent}];
+                        languageData.push(parseData);
+                    }
+                }
+                catch(err){
+                    error +=1;
+                }
+            }
+        }
+    }
+    
+    try{
+        var parseContent = parseBrackets(content);
+        content = '';
+        var parseData = {"meaning":"","comment":""};
+        parseData[lang] = [{"gloss":[],"comment":"","tree":parseContent}];
+        languageData.push(parseData);
+    }
+    catch(err){
+        error +=1;
+    }
+    
+    return languageData;
+}
