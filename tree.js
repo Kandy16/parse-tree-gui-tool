@@ -596,10 +596,12 @@ function parseWholeBracketsFile(content,lang){
     
     try{
         var parseContent = parseBrackets(content);
-        content = '';
-        var parseData = {"meaning":"","comment":""};
-        parseData[lang] = [{"gloss":[],"comment":"","tree":parseContent}];
-        languageData.push(parseData);
+        if(parseContent){
+            content = '';
+            var parseData = {"meaning":"","comment":""};
+            parseData[lang] = [{"gloss":[],"comment":"","tree":parseContent}];
+            languageData.push(parseData);
+        }
     }
     catch(err){
         error +=1;
