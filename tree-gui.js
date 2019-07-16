@@ -15,7 +15,7 @@ class TreeGUI{
         this.domElementId = domElementId;
         this.guiElement = document.querySelector("#"+this.domElementId);
         
-        this.filterPropeties = ['none'];
+        this.filterProperties = ['none'];
 
         //Rendering of the Dagre library was not working when added through DOM API.
         // Not sure why? - There were many hierarchy of calls in D3 API and was throwing error
@@ -75,11 +75,14 @@ class TreeGUI{
         } else if(typeof(parse_str) == 'object'){
             treeDS = parse_str;
         }
-            
-        this.treeGroupObj = new TreeGroup(treeDS);
+        
         if (this.treeGroupObj) {
-            this.drawTree(this.treeGroupObj);
+            this.treeGroupObj.load(treeDS);
+        }else{
+            this.treeGroupObj = new TreeGroup(treeDS);    
         }
+        
+        this.drawTree(this.treeGroupObj);
     }
 
     drawTree(treeGroupObj) {
@@ -96,7 +99,7 @@ class TreeGUI{
         var properties = ['all', 'none','id'];
         properties = properties.concat(this.treeGroupObj.getAllProperties());
         
-        this.filterPropeties.filter(function(value, index, arr){
+        this.filterProperties.filter(function(value, index, arr){
            return properties.includes(value); 
         });
         
@@ -104,7 +107,7 @@ class TreeGUI{
         var filterOptionsText = '';
         for(var i in properties){
             let selected = '';
-            if(this.filterPropeties.includes(properties[i])){
+            if(this.filterProperties.includes(properties[i])){
                 selected=' selected';
             }
             filterOptionsText += '<option value="'+properties[i]+'"'+selected+'>'+properties[i]+'</option>'
@@ -129,11 +132,11 @@ class TreeGUI{
     
     handleFilterChange(event){
         //This is invoke when filters options (properties of parser tree) are changed
-        this.filterPropeties = [];
+        this.filterProperties = [];
         //Enumerate the selected options and push it to filterProperties
         for(let i in event.target.selectedOptions){
             if(!isNaN(i)){ //some properties are not numeric
-                this.filterPropeties.push(event.target.selectedOptions[i].value);
+                this.filterProperties.push(event.target.selectedOptions[i].value);
             }
         }
         setTimeout(this.drawTree(this.treeGroupObj), 1000);
@@ -163,23 +166,26 @@ class TreeGUI{
         // Create the node content based on filters
         //the label of the node (which is displayed)  
         var labelContent = tree.label;
-        if(this.filterPropeties.includes('all') || 
-           this.filterPropeties.includes('id')){
+        if(this.filterProperties.includes('all') || 
+           this.filterProperties.includes('id')){
             if(tree.refId){
                 labelContent += ' '+tree.refId+'~';
             }
         }
-        if(tree.properties && !this.filterPropeties.includes('none')){
+        if(tree.properties && !this.filterProperties.includes('none')){
             let propertiesContent = '';
             
             for(var i in tree.properties){
-                if(this.filterPropeties.includes('all') || 
-                   this.filterPropeties.includes(i)){
+                if(this.filterProperties.includes('all') || 
+                   this.filterProperties.includes(i)){
                     propertiesContent += i+'='+tree.properties[i]+',';    
                 }
                 
             }
             if(propertiesContent){
+                if(!tree.refId){
+                    labelContent += ' ';
+                }
                 labelContent += '['+propertiesContent+']';    
             }
             
@@ -456,10 +462,10 @@ class TreeGUI{
         console.log('Edit button clicked!!');
         event.stopImmediatePropagation();
         if (this.selectedNodeIndex != undefined) {
-            let oldLabel = this.treeGroupObj.getNodeLabel(this.selectedNodeIndex);
+            let oldLabel = this.treeGroupObj.getNodeLabelWithProperties(this.selectedNodeIndex);
             let newLabel = prompt('Please enter a new node label: ',oldLabel);
             if(newLabel != null){
-                if(this.treeGroupObj.setNodeLabel(this.selectedNodeIndex, newLabel)){
+                if(this.treeGroupObj.setNodeLabelWithProperties(this.selectedNodeIndex, newLabel)){
                     setTimeout(this.drawTree(this.treeGroupObj), 1000);    
                 }
             }

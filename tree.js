@@ -277,27 +277,93 @@ class Tree {
         }
         return true;
     }  
-    getNodeLabel(nodeId) {
+    getNodeLabelWithProperties(nodeId) {
         //find the  node
         let node = this.findNode(nodeId)[0];
         if(node === undefined){
             console.error('Node was not found!');
             return;
         }
-        let label = node.label;
-        return label;
-    }
-    setNodeLabel(nodeId, label='') {
-        //find the  node
-        let node = this.findNode(nodeId)[0];
-        if(node === undefined){
-            console.error('Node was not found!');
-            return;
-        }
-        let old_label = node.label;
-        node.label = label;
         
-        this.active_history.push([this.setNodeLabel, this, [nodeId, old_label]]);
+        let content = node.label;
+        
+        if(node.properties){
+            let propContent = '';
+            for(let i in node.properties){
+                propContent += i+'='+node.properties[i]+',';
+            }
+            
+            if(propContent){
+                propContent = '['+propContent+']';
+            }
+            
+            if(node.refId){
+                propContent = node.refId+'~'+propContent;
+            }
+            
+            if(propContent){
+                content += ' '+propContent;
+            }
+        }
+        return content;
+    }
+    setNodeLabelWithProperties(nodeId, inputText='') {
+        //find the  node
+        let node = this.findNode(nodeId)[0];
+        if(node === undefined){
+            console.error('Node was not found!');
+            return;
+        }
+        let old_content = this.getNodeLabelWithProperties(nodeId);
+        
+        let isInputError = false;
+        try{
+            var label = inputText;
+            var refId = undefined;
+            var properties = undefined;
+            if(inputText){
+                var items = inputText.split(' ');
+                label = items[0];
+                if(items.length > 1){
+                //the first property contains the id associated with ~ symbol
+                    var props = items[1].trim();
+                    if(props.includes('~')){
+                        props = props.split('~');
+                        refId = props[0].trim();
+                        props = props[1].trim();
+                    }
+                    // the main properties are enclosed within [ and ] and each property is separated by , 
+                    // Each property is a key value pair with = as delimiter
+                    if(props.startsWith('[') && props.endsWith(']')){
+                        properties = {};
+                        var props = props.slice(1,-1);
+                        var keyValues = props.split(',');
+                        for(var i in keyValues){
+                            var info = keyValues[i].trim();
+                            var keyValue = info.split('=');
+                            if(keyValue.length >= 2){
+                                properties[keyValue[0].trim()] = keyValue[1].trim();
+                                //ignore the rest
+                            }
+                            else if(info.startsWith('{') && info.endsWith('}')){
+                                // sometimes the coref will not have key
+                                properties['coref'] = info;
+                            }
+                        }
+                    }
+                }
+            }
+        }catch(err){
+            isInputError = true;
+        }
+        
+        if(!isInputError){
+            node.label = label;
+            node.refId = refId;
+            node.properties = properties;
+        }
+        
+        this.active_history.push([this.setNodeLabelWithProperties, this, [nodeId, old_content]]);
         this.clearRedoList();
         return true;
     }
@@ -407,8 +473,12 @@ function tree2str(tree, level = 0){
         let result = node.edge;
         result += ' '+node.label;
         
+        if(node.refId || node.properties){
+            result += ' ';
+        }
+        
         if(node.refId){
-            result += ' '+node.refId+'~';
+            result += node.refId+'~';
         }
         
         if(node.properties){
@@ -510,6 +580,8 @@ function parseBrackets(brackets) {
     let node = '';
     let parentStack = [];
     
+    let trees = [];
+    
     for (let i in brackets) {
         let ch = brackets.charAt(i);
 
@@ -550,7 +622,11 @@ function parseBrackets(brackets) {
                 } 
                 
                 if (unmatched_brackets) { // top element has no parent
-                    parentobj = parentStack[unmatched_brackets]
+                    parentobj = parentStack[unmatched_brackets];
+                } else{
+                    trees.push(rootObj);
+                    rootObj = null;
+                    parentobj = null;
                 }
                 break;
                 // Collect the content untill we encounter '(' or ')'
@@ -559,7 +635,7 @@ function parseBrackets(brackets) {
         }
     }
     console.assert(unmatched_brackets === 0, unmatched_brackets);
-    return rootObj;
+    return trees;
 }
 
 //TBD Loading  and Serialization, creation of Graphlib nodes need to be moved to a separate class
@@ -580,7 +656,7 @@ function parseWholeBracketsFile(content,lang){
                 let error = 0;
                 try{
                     var parseContent = parseBrackets(content);
-                    if(parseContent){
+                    if(parseContent && Array.isArray(parseContent) && parseContent.length > 0){
                         content = '';
                         var parseData = {"meaning":"","comment":""};
                         parseData[lang] = [{"gloss":[],"comment":"","tree":parseContent}];
@@ -596,7 +672,7 @@ function parseWholeBracketsFile(content,lang){
     
     try{
         var parseContent = parseBrackets(content);
-        if(parseContent){
+        if(parseContent && Array.isArray(parseContent) && parseContent.length > 0){
             content = '';
             var parseData = {"meaning":"","comment":""};
             parseData[lang] = [{"gloss":[],"comment":"","tree":parseContent}];

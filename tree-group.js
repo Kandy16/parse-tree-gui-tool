@@ -2,9 +2,21 @@
 class TreeGroup extends Tree{
     constructor(inputTree) {
         super();
-        this.children = [];
-        this.children.push(inputTree);
+        this.children = inputTree;
         this.numerate(); // for trees which are read from JSON
+    }
+    
+    load(inputTree){
+        var length = this.children.length;
+        for(var i=0;i<length;i++){
+            this.children.splice(0,1);    
+        }
+        
+        for(var i=0;i<inputTree.length;i++){
+            this.children.push(inputTree[i]);
+        }
+        
+        this.numerate();
     }
 
     findNode(nodeId) {
@@ -276,11 +288,9 @@ class TreeGroup extends Tree{
 // returns neat formatted string representation of a parse
 function treeGroup2str(treeGroup) {
     resultVal = '';
-    if (treeGroup.children) {
-        for (let i in treeGroup.children) {
-            let tree = treeGroup.children[i];
-            resultVal += tree2str(tree) + '\n\n'; 
-        }
+    for (let i in treeGroup.children) {
+        let tree = treeGroup.children[i];
+        resultVal += tree2str(tree) + '\n\n'; 
     }
     return resultVal;
 }
