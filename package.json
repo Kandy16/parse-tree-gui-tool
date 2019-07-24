@@ -1,0 +1,28 @@
+{
+  "name": "parse-tree-gui-tool",
+  "version": "1.0.0",
+  "description": "A javascript library to manipulate and visualize parser tree",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kandy16/parse-tree-gui-tool.git"
+  },
+  "keywords": [
+    "parser",
+    "tree",
+    "visualizer",
+    "manipulator"
+  ],
+  "author": "Kandhasamy Rajasekaran (Kandy)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Kandy16/parse-tree-gui-tool/issues"
+  },
+  "homepage": "https://github.com/Kandy16/parse-tree-gui-tool#readme"
+}
