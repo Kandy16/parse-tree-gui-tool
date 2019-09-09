@@ -292,6 +292,9 @@ class Tree {
             for(let i in node.properties){
                 propContent += i+'='+node.properties[i]+',';
             }
+            if(propContent){
+                propContent = propContent.slice(0,-1);
+            }
             
             if(propContent){
                 propContent = '['+propContent+']';
@@ -317,6 +320,7 @@ class Tree {
         let old_content = this.getNodeLabelWithProperties(nodeId);
         
         let isInputError = false;
+        let isParsingError = false;
         try{
             var label = inputText;
             var refId = undefined;
@@ -344,12 +348,20 @@ class Tree {
                             if(keyValue.length >= 2){
                                 properties[keyValue[0].trim()] = keyValue[1].trim();
                                 //ignore the rest
+                                
+                                if(keyValue.length > 2){
+                                    isParsingError = true;
+                                }
                             }
                             else if(info.startsWith('{') && info.endsWith('}')){
                                 // sometimes the coref will not have key
                                 properties['coref'] = info;
+                            } else if(info){
+                                isParsingError = true;
                             }
                         }
+                    } else if(props){
+                        isParsingError = true;
                     }
                 }
             }
@@ -357,15 +369,14 @@ class Tree {
             isInputError = true;
         }
         
-        if(!isInputError){
+        if(!isInputError && !isParsingError){
             node.label = label;
             node.refId = refId;
             node.properties = properties;
-        }
-        
-        this.active_history.push([this.setNodeLabelWithProperties, this, [nodeId, old_content]]);
-        this.clearRedoList();
-        return true;
+            this.active_history.push([this.setNodeLabelWithProperties, this, [nodeId, old_content]]);
+            this.clearRedoList();
+        }         
+        return [isInputError, isParsingError];
     }
     
     undo() {
@@ -484,10 +495,17 @@ function tree2str(tree, level = 0){
         if(node.properties){
             result += '[';
             
+            var temp = '';
             for(var i in node.properties){
-                result += i+'='+node.properties[i]+','
+                temp += i+'='+node.properties[i]+','
             }
-            result += ']';
+            
+            //Remove the last comma - Might introduce parsing error
+            if(temp){
+                temp = temp.slice(0,-1);
+            }
+            
+            result = result + temp + ']';
         }
         return result;
     }

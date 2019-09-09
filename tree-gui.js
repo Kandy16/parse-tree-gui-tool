@@ -25,16 +25,16 @@ class TreeGUI{
         
         this.guiElement.innerHTML = ' \
         <div class="row"> \
-            <div class="col-11"> \
+            <div class="col-sm-8"> \
                 <textarea class="input" rows="15"> (expr S (conj S 1~[subject={2},head={5},ref=3] (subj NP 2~[{4},ref=1] (head PropN 3~[{4}] (lex Mari 4~[stem=Mari,case=nominative,person=3,number=sg,gender=fem]))) (head V 5~[{6},ref=11] (lex liest 6~[stem=read,tense=present,person=3,number=sg,mode=active])) (dobj NP 13~[{14},ref=7] (head N 14~[{15},ref=7] (lex Bücher 15~[stem=book,case=accusative,person=3,number=pl,gender=masc])))) (coord C 13~[{12}] (lex und 12~[stem=and])) (conj S 7~[subject={10},ref=13,head={11}] (subj NP 8~[{10},ref=2] (head PropN 9~[{10}] (lex Jüri 10~[stem=Jüri,case=nominative,person=3,number=sg,gender=masc])))      (head V 11~[{12},ref=12] (lex schreibt 12~[stem=write,tense=present,person=3,number=sg,mode=active]))  (dobj NP 16~[{17},ref=7] (head N 17~[{18},ref=7] (lex Bücher 18~[stem=book,case=accusative,person=3,number=pl,gender=fem]))))) </textarea> \
             </div> \
-            <div class="col-1"> \
+            <div class="col-sm-2"> \
                 <select class="choose_filter" multiple="True" size=15> \
                 </select> \
             </div> \
         </div> \
         <div class="row> \
-            <div class="col-12"> \
+            <div class="col-sm-12"> \
                 <div class="btn-group"> \
                     <input type="button" class="load" value="Load" size=50> \
                     <input type="button" class="undo" value="Undo" size=50> \
@@ -43,8 +43,8 @@ class TreeGUI{
             </div> \
         </div> \
         <div class="row"> \
-            <div class="col-12"> \
-                <svg class="drawing_area" width=960 height=600></svg> \
+            <div class="col-11"> \
+                <svg class="drawing_area"></svg> \
             </div> \
         </div>';
         // The event handlers will have event context and so this will most likely point to DOM
@@ -465,9 +465,12 @@ class TreeGUI{
             let oldLabel = this.treeGroupObj.getNodeLabelWithProperties(this.selectedNodeIndex);
             let newLabel = prompt('Please enter a new node label: ',oldLabel);
             if(newLabel != null){
-                if(this.treeGroupObj.setNodeLabelWithProperties(this.selectedNodeIndex, newLabel)){
-                    setTimeout(this.drawTree(this.treeGroupObj), 1000);    
+                var results = this.treeGroupObj.setNodeLabelWithProperties(this.selectedNodeIndex, newLabel);
+                if(results[0] || results[1]){
+                    alert('Error occurred in parsing. The old values are retained. Please make sure that syntax is correct !!!');
                 }
+                setTimeout(this.drawTree(this.treeGroupObj), 1000);    
+                
             }
         } else{
             console.log('Select a node first !!!');
@@ -628,6 +631,4 @@ class TreeGUI{
             setTimeout(this.drawTree(this.treeGroupObj), 1000);        
         }
     }
-
 }
-
