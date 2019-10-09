@@ -292,6 +292,7 @@ class Tree {
             for(let i in node.properties){
                 propContent += i+'='+node.properties[i]+',';
             }
+            //remove the last comma
             if(propContent){
                 propContent = propContent.slice(0,-1);
             }

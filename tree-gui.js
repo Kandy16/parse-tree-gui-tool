@@ -24,7 +24,7 @@ class TreeGUI{
         // are nested inside Object works out. So, sticking to it
         
         this.guiElement.innerHTML = ' \
-        <div class="row"> \
+        <div class="row parse_text_editor"> \
             <div class="col-sm-8"> \
                 <textarea class="input" rows="15"> (expr S (conj S 1~[subject={2},head={5},ref=3] (subj NP 2~[{4},ref=1] (head PropN 3~[{4}] (lex Mari 4~[stem=Mari,case=nominative,person=3,number=sg,gender=fem]))) (head V 5~[{6},ref=11] (lex liest 6~[stem=read,tense=present,person=3,number=sg,mode=active])) (dobj NP 13~[{14},ref=7] (head N 14~[{15},ref=7] (lex Bücher 15~[stem=book,case=accusative,person=3,number=pl,gender=masc])))) (coord C 13~[{12}] (lex und 12~[stem=and])) (conj S 7~[subject={10},ref=13,head={11}] (subj NP 8~[{10},ref=2] (head PropN 9~[{10}] (lex Jüri 10~[stem=Jüri,case=nominative,person=3,number=sg,gender=masc])))      (head V 11~[{12},ref=12] (lex schreibt 12~[stem=write,tense=present,person=3,number=sg,mode=active]))  (dobj NP 16~[{17},ref=7] (head N 17~[{18},ref=7] (lex Bücher 18~[stem=book,case=accusative,person=3,number=pl,gender=fem]))))) </textarea> \
             </div> \
@@ -39,6 +39,8 @@ class TreeGUI{
                     <input type="button" class="load" value="Load" size=50> \
                     <input type="button" class="undo" value="Undo" size=50> \
                     <input type="button" class="redo" value="Redo" size=50> \
+                    <input type="button" class="save_image" value="To Image" size=50> \
+                    <input type="button" class="full_screen" value="Toggle Display" size=50> \
                 </div> \
             </div> \
         </div> \
@@ -53,6 +55,8 @@ class TreeGUI{
         this.guiElement.querySelector('.load').onclick = ()=>this.loadTreeFunc();
         this.guiElement.querySelector('.undo').onclick = ()=>this.undoClickFunc();
         this.guiElement.querySelector('.redo').onclick = ()=>this.redoClickFunc();
+        this.guiElement.querySelector('.save_image').onclick = ()=>this.saveImageClickFunc();
+        this.guiElement.querySelector('.full_screen').onclick = ()=>this.fullScreenClickFunc();
     }
 
     loadTreeFunc(parse_str='') {
@@ -183,6 +187,10 @@ class TreeGUI{
                 
             }
             if(propertiesContent){
+                
+                // Remove the last comma
+                propertiesContent = propertiesContent.slice(0,-1);
+                
                 if(!tree.refId){
                     labelContent += ' ';
                 }
@@ -395,13 +403,26 @@ class TreeGUI{
 
         this.clearNodeVariables();
         this.clearEdgeVariables();
-
+        
         // Save the node Index and the element
         this.selectedNodeIndex = nodeId;
         this.treeGroupObj.selectedIndex = nodeId;
         console.log('Selected Node index :',this.selectedNodeIndex);
-        this.selectedNode = nodeList[nodeIndex];
-
+        
+        // the function either takes three arguments - nodeId, nodeIndex - the index of nodeList
+        // and nodeList - this is usual through UI operations
+        
+        // Otherwise - it takes two arguments
+        // nodeId remains the same
+        // Instead of nodeIndex, we pass the selectedNode itself
+        
+        if(nodeList) {
+            this.selectedNode = nodeList[nodeIndex];
+        } else {
+            //here nodeIndex is the node to be selcted
+            this.selectedNode = nodeIndex;
+        }
+        
         // selected class will show the node with blue colour overlay
         this.selectedNode.classList.add('selected');
 
@@ -631,4 +652,98 @@ class TreeGUI{
             setTimeout(this.drawTree(this.treeGroupObj), 1000);        
         }
     }
+    
+    saveImageClickFunc (){
+        
+        function readElement(ParentNode, OrigData){
+            var ContainerElements = ["svg","g"];
+            var RelevantStyles = {"rect":["fill","stroke","stroke-width"],
+                              "path":["fill","stroke","stroke-width"],
+                              "circle":["fill","stroke","stroke-width"],
+                              "line":["stroke","stroke-width"],
+                              "text":["fill","font-size","text-anchor"],
+                              "polygon":["stroke","fill"]};
+
+
+
+            var Children = ParentNode.childNodes;
+            var OrigChildDat = OrigData.childNodes;     
+
+            for (var cd = 0; cd < Children.length; cd++){
+                var Child = Children[cd];
+
+                var TagName = Child.tagName;
+                if (ContainerElements.indexOf(TagName) != -1){
+                    readElement(Child, OrigChildDat[cd])
+                } else if (TagName in RelevantStyles){
+                    var StyleDef = window.getComputedStyle(OrigChildDat[cd]);
+
+                    var StyleString = "";
+                    for (var st = 0; st < RelevantStyles[TagName].length; st++){
+                        StyleString += RelevantStyles[TagName][st] + ":" + StyleDef.getPropertyValue(RelevantStyles[TagName][st]) + "; ";
+                    }
+
+                    Child.setAttribute("style",StyleString);
+                }
+            }
+
+        }
+        
+        //The SVG derived also contains accessory button images of selected node.
+        // In order to avoid that, it is important to deselect the current node
+        // Get the SVG and select the node back
+        
+        // Get the selected node parameters
+        var tempNode = this.selectedNode;
+        var tempNodeId = this.selectedNodeIndex;
+        
+        // Clear the nodes and edges
+        this.clearNodeVariables();
+        this.clearEdgeVariables();
+        
+        console.log('Save Image Function clicked!!');
+        event.stopImmediatePropagation();
+
+        //Get the SVG reference
+        var svgElement = d3.select("#"+this.domElementId+" .drawing_area");
+        svgElement = svgElement._groups[0][0];
+        
+        // Get the copy of SVG Element including the CSS style 
+        // This is mandatory for a Good looking UI
+        var oDOM = svgElement.cloneNode(true);
+        readElement(oDOM, svgElement);
+    
+        // Serialize by XML and create a Blob object of type svg and xml
+        // Download the content using link download
+        var svgData = new XMLSerializer().serializeToString(oDOM);
+        var svgBlob = new Blob([svgData], {type:"image/svg+xml;charset=utf-8"});
+        var svgUrl = URL.createObjectURL(svgBlob);
+        var downloadLink = document.createElement("a");
+        downloadLink.href = svgUrl;
+        downloadLink.download = "newesttree.svg";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink); 
+        
+        // Select the node or edge after extract SVG image
+        //here we pass only two arguments which is taken care of
+        this.selectNodeFunc(tempNodeId, tempNode);
+        
+    }
+    
+    fullScreenClickFunc (){
+        var parseTreeEditor =  this.guiElement.querySelector(".parse_text_editor");
+        if(parseTreeEditor){
+            var currentDisplayStatus = parseTreeEditor.style.display;
+            if(currentDisplayStatus == 'none'){
+                // this will make the bootstrap to take over
+                parseTreeEditor.style.display = '';
+            }
+            else{
+                parseTreeEditor.style.display='none';        
+            }
+        }
+    }
+    
+    
 }
