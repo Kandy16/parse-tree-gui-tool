@@ -290,7 +290,11 @@ class Tree {
         if(node.properties){
             let propContent = '';
             for(let i in node.properties){
-                propContent += i+'='+node.properties[i]+',';
+                if(i =='coref'){
+                    propContent += node.properties[i]+',';
+                } else {
+                    propContent += i+'='+node.properties[i]+',';        
+                }
             }
             //remove the last comma
             if(propContent){
@@ -498,7 +502,11 @@ function tree2str(tree, level = 0){
             
             var temp = '';
             for(var i in node.properties){
-                temp += i+'='+node.properties[i]+','
+                if(i=='coref'){
+                    temp += node.properties[i]+','    
+                } else{
+                    temp += i+'='+node.properties[i]+','    
+                }
             }
             
             //Remove the last comma - Might introduce parsing error
